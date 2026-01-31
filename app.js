@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:45 PM"; /* Negative margin fix */
+const BUILD_DATE = "31 Jan 2026, 11:52 PM"; /* Debug: all hidden */
 
 // Correct SVG List
 const ACTIVITIES = [
