@@ -57,8 +57,7 @@ body {
 /* --- Main Panel --- */
 .main-panel {
     grid-area: main;
-    display: none;
-    /* TEMP DEBUG */
+    display: flex;
     flex-direction: column;
     padding: 10px 5px 5px 15px;
     overflow: hidden;

@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:52 PM"; /* Debug: all hidden */
+const BUILD_DATE = "1 Feb 2026, 12:18 AM"; /* CACHE BUST v2.0 */
 
 // Correct SVG List
 const ACTIVITIES = [
