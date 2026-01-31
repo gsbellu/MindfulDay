@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:18 PM"; /* Fixed render bug */
+const BUILD_DATE = "31 Jan 2026, 11:22 PM"; /* Fixed history undefined */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -112,8 +112,7 @@ function saveState() {
 // Main render function - updates all UI elements
 function render() {
     renderActivities();
-    updateTimerDisplays();
-    updateTimelineMarker();
+    // Timer updates happen via setInterval, not here
 }
 
 function renderActivities() {
@@ -168,6 +167,12 @@ function handleActivityClick(activity) {
 
     if (state.currentActivityId && state.currentActivityStartTime) {
         const duration = now - state.currentActivityStartTime;
+
+        // Ensure history array exists
+        if (!state.history) {
+            state.history = [];
+        }
+
         state.history.push({
             activityId: state.currentActivityId,
             startTime: state.currentActivityStartTime,
