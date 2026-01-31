@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 9:25 PM"; /* Automatic Build Timestamp */
+const BUILD_DATE = "31 Jan 2026, 9:45 PM"; /* Syntax Fix */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -187,23 +187,25 @@ function setupNavigation() {
             if (mode === 'run') {
                 document.getElementById('mainPanel').style.display = 'flex';
                 document.getElementById('settingsPanel').style.display = 'none';
+                toggleSettingsMode(false);
             } else if (mode === 'settings') {
                 document.getElementById('mainPanel').style.display = 'none';
-                document.getElementById('settingsPanel').style.display = 'block';
+                document.getElementById('settingsPanel').style.display = 'flex';
+                toggleSettingsMode(true);
                 // Render Build Info
                 document.getElementById('settingsContent').innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
+                    <div style="padding: 20px; text-align: center; margin-top: 50px;">
                         <h2>MindfulDay</h2>
                         <p style="color: #8e8e93; margin-top: 5px;">Build: ${BUILD_DATE}</p>
                         <br>
                         
                         <!-- Force Refresh Button -->
-                        <button onclick="window.location.search = 't=' + Date.now();" 
+                        <button onclick="checkForUpdates()" 
                                 style="width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
                             🔄 Check for Updates
                         </button>
 
-                        <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); location.reload(); }" 
+                        <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
                                 style="width: 100%; padding: 15px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;">
                             ⚠️ Reset App Data
                         </button>
@@ -212,6 +214,52 @@ function setupNavigation() {
             }
         });
     });
+}
+
+function toggleSettingsMode(isSettings) {
+    const side = document.querySelector('.side-panel');
+    const timers = document.querySelector('.timers-capsule');
+
+    if (isSettings) {
+        if (side) side.style.display = 'none';
+        if (timers) timers.style.visibility = 'hidden'; // Keep space or remove? User said "empty page". Let's hide visibility to keep layout stable or display none?
+        // User screenshot shows grid structure. If we hide side panel, main panel might stretch.
+        // Let's rely on CSS class if possible, but inline is faster for now.
+        // Actually, let's use display:none for side, but we might lose grid alignment.
+        // Let's try opacity 0 for side to keep layout, or just hide it.
+        if (side) side.style.visibility = 'hidden';
+    } else {
+        if (side) side.style.display = 'flex';
+        if (side) side.style.visibility = 'visible';
+        if (timers) timers.style.visibility = 'visible';
+    }
+}
+
+async function checkForUpdates() {
+    try {
+        const btn = document.querySelector('button[onclick="checkForUpdates()"]');
+        if (btn) btn.textContent = "Checking...";
+
+        // Fetch app.js with cache busting
+        const response = await fetch('app.js?v=' + Date.now());
+        const text = await response.text();
+
+        // Extract DATE from the file
+        const match = text.match(/const BUILD_DATE = "(.*?)";/);
+        const serverDate = match ? match[1] : null;
+
+        if (serverDate && serverDate !== BUILD_DATE) {
+            if (confirm(`Update Available!\nServer: ${serverDate}\nCurrent: ${BUILD_DATE}\n\nDownload now?`)) {
+                window.location.search = 'v=' + Date.now();
+            }
+        } else {
+            alert("No update available.\nYou are on the latest version.");
+        }
+
+        if (btn) btn.textContent = "🔄 Check for Updates";
+    } catch (e) {
+        alert("Error checking for updates.\\n" + e.message);
+    }
 }
 
 function registerServiceWorker() {

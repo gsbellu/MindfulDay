@@ -57,7 +57,25 @@ body {
     flex-direction: column;
     padding: 10px 5px 5px 15px;
     overflow: hidden;
+    overflow: hidden;
     /* No scrolling allowed */
+}
+
+/* Settings Mode Overrides */
+body.settings-active .side-panel,
+body.settings-active .timers-capsule,
+body.settings-active .activity-grid {
+    display: none !important;
+}
+
+body.settings-active .main-panel {
+    grid-column: 1 / -1;
+    /* Full Width */
+    grid-row: 1 / -1;
+    /* Full Height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .activity-grid {
