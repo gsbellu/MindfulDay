@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:22 PM"; /* Fixed history undefined */
+const BUILD_DATE = "31 Jan 2026, 11:28 PM"; /* JS viewport fix */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -53,7 +53,37 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     startTimerLoop();
     registerServiceWorker();
+
+    // Fix bottom section position for PWA
+    fixBottomSectionPosition();
+    window.addEventListener('resize', fixBottomSectionPosition);
+    window.addEventListener('orientationchange', fixBottomSectionPosition);
 });
+
+// Fix bottom section alignment in PWA standalone mode
+function fixBottomSectionPosition() {
+    const bottomSection = document.querySelector('.bottom-section');
+    if (!bottomSection) return;
+
+    // Get actual viewport height
+    const vh = window.innerHeight;
+
+    // Calculate bottom section height
+    const bottomHeight = bottomSection.offsetHeight;
+
+    // Position bottom section at the very bottom
+    bottomSection.style.position = 'fixed';
+    bottomSection.style.bottom = '0';
+    bottomSection.style.left = '0';
+    bottomSection.style.right = '0';
+    bottomSection.style.transform = 'translateY(0)';
+
+    // Adjust main container padding to prevent overlap
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.style.paddingBottom = (bottomHeight + 10) + 'px';
+    }
+}
 
 // --- Helper Functions ---
 
