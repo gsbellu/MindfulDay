@@ -35,17 +35,13 @@ body {
     display: grid;
     height: 100%;
     width: 100%;
-    /* 
-       Row 1: Main Content (Flexible)
-       Row 2: Bottom Section (Auto - contains Timers + Nav)
-    */
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr;
     grid-template-columns: 1fr 55px;
     grid-template-areas:
-        "main side"
-        "bottom bottom";
+        "main side";
     padding-top: var(--safe-area-top);
-    /* Safe area bottom moved to .bottom-section */
+    /* Reserve space for fixed bottom section */
+    padding-bottom: 170px;
     background: #ffffff;
 }
 
@@ -211,15 +207,17 @@ body.settings-active .main-panel {
 
 /* --- Bottom Section (Timers + Nav) --- */
 .bottom-section {
-    grid-area: bottom;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom)) 16px;
     background: #ffffff;
-    z-index: 50;
+    z-index: 100;
     box-shadow: none !important;
-    /* Explicitly none */
     border: none !important;
 }
 
