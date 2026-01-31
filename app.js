@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:10 PM"; /* Wake-up resets day */
+const BUILD_DATE = "31 Jan 2026, 11:15 PM"; /* Fixed activity sync */
 
 // Correct SVG List
 const ACTIVITIES = [
