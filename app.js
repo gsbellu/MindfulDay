@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 10:42 PM"; /* Fixed overlap issue */
+const BUILD_DATE = "31 Jan 2026, 11:05 PM"; /* Firebase Sync */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -57,15 +57,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Helper Functions ---
 
+// Get unique device ID (or create one)
+function getDeviceId() {
+    let deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) {
+        deviceId = 'device_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('deviceId', deviceId);
+    }
+    return deviceId;
+}
+
+const DEVICE_ID = getDeviceId();
+const stateRef = window.firebaseDB.ref('state');
+
 function loadState() {
+    // Try localStorage first for offline fallback
     const saved = localStorage.getItem(STATE_KEY);
     if (saved) {
         state = JSON.parse(saved);
     }
+
+    // Load from Firebase (will override local if exists)
+    stateRef.once('value').then((snapshot) => {
+        const firebaseState = snapshot.val();
+        if (firebaseState) {
+            state = firebaseState;
+            render();
+        }
+    }).catch((error) => {
+        console.log('Firebase load failed, using local state:', error);
+    });
+
+    // Listen for real-time updates from other devices
+    stateRef.on('value', (snapshot) => {
+        const firebaseState = snapshot.val();
+        if (firebaseState && firebaseState.lastUpdatedBy !== DEVICE_ID) {
+            state = firebaseState;
+            render();
+        }
+    });
 }
 
 function saveState() {
+    // Save locally for offline support
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
+
+    // Save to Firebase
+    state.lastUpdatedBy = DEVICE_ID;
+    stateRef.set(state).catch((error) => {
+        console.log('Firebase save failed:', error);
+    });
 }
 
 function renderActivities() {
