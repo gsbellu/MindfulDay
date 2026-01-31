@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:05 PM"; /* Firebase Sync */
+const BUILD_DATE = "31 Jan 2026, 11:10 PM"; /* Wake-up resets day */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -130,6 +130,28 @@ function renderActivities() {
 
 function handleActivityClick(activity) {
     const now = Date.now();
+
+    // RESET ALL TIMERS when Wake Up is pressed (new day starts)
+    if (activity.id === 'wakeup') {
+        state = {
+            currentActivityId: null,
+            currentActivityStartTime: null,
+            history: [],
+            isDayStarted: false,
+            dayStartTime: null
+        };
+
+        // Now start the new day with wake-up activity
+        state.dayStartTime = now;
+        state.isDayStarted = true;
+        state.currentActivityId = activity.id;
+        state.currentActivityStartTime = now;
+
+        updateMetaDisplay(activity);
+        renderActivities();
+        saveState();
+        return;
+    }
 
     // Start Day Timer on FIRST activity of any kind if not started
     if (!state.isDayStarted) {
