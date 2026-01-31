@@ -229,21 +229,7 @@ body.settings-active .main-panel {
     border: none !important;
 }
 
-/* PWA Standalone Mode Fix - Force bottom alignment */
-@media all and (display-mode: standalone) {
-    body {
-        padding-bottom: 0 !important;
-    }
-
-    .app-container {
-        padding-bottom: 160px !important;
-    }
-
-    .bottom-section {
-        bottom: -10px;
-        padding: 10px 16px 50px 16px;
-    }
-}
+/* PWA-specific styles removed - now handled by JavaScript */
 
 /* Timers Row */
 .timers-capsule {
