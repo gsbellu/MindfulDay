@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MindfulDay</title>
     <link rel="manifest" href="manifest.json">
@@ -14,6 +14,15 @@
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧘</text></svg>">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .activity-btn img {
+            display: block;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+        }
+    </style>
 </head>
 
 <body>
@@ -22,36 +31,66 @@
         <main class="main-panel" id="mainPanel">
             <!-- Content Injected via JS -->
             <div class="activity-grid" id="activityGrid"></div>
-
-            <div class="timers-container">
-                <div class="timer-display current-activity-timer">
-                    <div class="timer-label" id="currentActivityLabel">Ready</div>
-                    <div class="timer-value" id="currentActivityTimer">00:00</div>
-                </div>
-                <div class="timer-display day-timer">
-                    <div class="timer-label">Total Day</div>
-                    <div class="timer-value" id="dayTimer">00:00:00</div>
-                </div>
-            </div>
         </main>
 
         <!-- Panel 2: Side Panel (Visualization) -->
         <aside class="side-panel">
-            <div class="timeline-visual" id="timelineVisual">
-                <div class="timeline-icon top-icon">☀️</div>
-                <div class="timeline-track">
-                    <div class="timeline-progress" id="timelineProgress"></div>
+            <div class="timeline-background">
+                <!-- Visual Container -->
+                <div class="timeline-visual" id="timelineVisual">
+                    <!-- Top: Sunrise -->
+                    <div class="timeline-icon top-icon">
+                        <img src="icons/sunrise_time.svg" alt="Sunrise">
+                    </div>
+
+                    <div class="timeline-track">
+                        <div class="timeline-progress" id="timelineProgress"></div>
+
+                        <!-- Markers -->
+                        <div class="track-marker marker-noon">
+                            <img src="icons/noon_time.svg" alt="Noon">
+                        </div>
+                        <div class="track-marker marker-evening">
+                            <img src="icons/evening_time.svg" alt="Evening">
+                        </div>
+                    </div>
+
+                    <!-- Bottom: Midnight -->
+                    <div class="timeline-icon bottom-icon">
+                        <img src="icons/mid-night_time.svg" alt="Midnight">
+                    </div>
                 </div>
-                <div class="timeline-icon bottom-icon">🌙</div>
             </div>
         </aside>
 
-        <!-- Panel 3: Bottom Panel (Navigation) -->
-        <nav class="bottom-panel">
-            <button class="nav-btn active" data-mode="run">🏃 Run</button>
-            <button class="nav-btn" data-mode="measure">📊 Measure</button>
-            <button class="nav-btn" data-mode="settings">⚙️ Settings</button>
-        </nav>
+        <!-- New Bottom Section Container -->
+        <section class="bottom-section">
+            <!-- Timers Row -->
+            <div class="timers-capsule">
+                <div class="timer-pill green-pill">
+                    <span id="currentActivityLabel" class="timer-label-overlay">Ready</span>
+                    <span id="currentActivityTimer">00:00</span>
+                </div>
+                <!-- Day Timer -->
+                <div class="timer-pill orange-pill">
+                    <span class="timer-label-overlay">All Day</span>
+                    <span id="dayTimer">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- Navigation Row -->
+            <nav class="bottom-nav">
+                <button class="nav-btn active" data-mode="run">
+                    <img src="icons/run_mode.svg" alt="Run">
+                </button>
+                <button class="nav-btn" data-mode="measure">
+                    <img src="icons/measure_mode.svg" alt="Measure">
+                </button>
+                <button class="nav-btn" data-mode="settings">
+                    <img src="icons/settings_mode.svg" alt="Settings">
+                </button>
+            </nav>
+        </section>
     </div>
 
     <script src="app.js"></script>

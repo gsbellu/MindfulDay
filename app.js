@@ -1,28 +1,29 @@
 /**
- * MindfulDay - Core Logic
+ * MindfulDay - Core Logic (v3)
  */
 
 const STATE_KEY = 'mindfulDayState';
 
+// Correct SVG List
 const ACTIVITIES = [
-    { id: 'wakeup', icon: 'ph-alarm', label: 'Wake Up' },
-    { id: 'bath', icon: 'ph-shower', label: 'Bath' },
-    { id: 'medicines', icon: 'ph-pill', label: 'Meds' },
-    { id: 'sadhana', icon: 'ph-lotus', label: 'Sadhana' },
-    { id: 'family', icon: 'ph-users-three', label: 'Family' },
-    { id: 'exercise', icon: 'ph-barbell', label: 'Exercise' },
-    { id: 'breakfast', icon: 'ph-coffee', label: 'Breakfast' },
-    { id: 'dress', icon: 'ph-coat-hanger', label: 'Dress' },
-    { id: 'drive', icon: 'ph-car', label: 'Drive' },
-    { id: 'work', icon: 'ph-briefcase', label: 'Work' },
-    { id: 'shoonya', icon: 'ph-yin-yang', label: 'Shoonya' },
-    { id: 'lunch', icon: 'ph-bowl-food', label: 'Lunch' },
-    { id: 'chat', icon: 'ph-chat-circle', label: 'Chat' },
-    { id: 'coffee', icon: 'ph-coffee-bean', label: 'Coffee' },
-    { id: 'entertainment', icon: 'ph-television', label: 'Fun' },
-    { id: 'walk', icon: 'ph-footprints', label: 'Walk' },
-    { id: 'hobby', icon: 'ph-paint-brush', label: 'Hobby' },
-    { id: 'sleep', icon: 'ph-bed', label: 'Sleep' }
+    { id: 'wakeup', icon: 'wake-up_activity.svg', label: 'Wake Up' },
+    { id: 'bath', icon: 'bath_activity.svg', label: 'Bath' },
+    { id: 'medicines', icon: 'ayurveda_activity.svg', label: 'Meds' },
+    { id: 'sadhana', icon: 'sadhana_activity.svg', label: 'Sadhana' },
+    { id: 'family', icon: 'family-time_activity.svg', label: 'Family' },
+    { id: 'exercise', icon: 'exercise_activity.svg', label: 'Exercise' },
+    { id: 'breakfast', icon: 'eat_activity.svg', label: 'Breakfast' },
+    { id: 'dress', icon: 'dress-up_activity.svg', label: 'Dress' },
+    { id: 'drive', icon: 'drive_activity.svg', label: 'Drive' },
+    { id: 'work', icon: 'office-work_activity.svg', label: 'Work' },
+    { id: 'shoonya', icon: 'sadhana_activity.svg', label: 'Shoonya' },
+    { id: 'lunch', icon: 'eat_activity.svg', label: 'Lunch' },
+    { id: 'chat', icon: 'chat_activity.svg', label: 'Chat' },
+    { id: 'coffee', icon: 'coffee-break_activity.svg', label: 'Coffee' },
+    { id: 'entertainment', icon: 'entertainment_activity.svg', label: 'Fun' },
+    { id: 'walk', icon: 'walk_activity.svg', label: 'Walk' },
+    { id: 'hobby', icon: 'hobby_activity.svg', label: 'Hobby' },
+    { id: 'sleep', icon: 'sleep_activity.svg', label: 'Sleep' }
 ];
 
 let state = {
@@ -30,22 +31,35 @@ let state = {
     currentActivityStartTime: null,
     dayStartTime: null,
     isDayStarted: false,
-    history: [] // { activityId, startTime, endTime, duration }
+    history: []
 };
 
+// --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
     renderActivities();
+
+    // Restore Label if activity is active
+    if (state.currentActivityId) {
+        const act = ACTIVITIES.find(a => a.id === state.currentActivityId);
+        if (act) {
+            // function is hoisted, so this is safe technically, 
+            // but we'll ensure it's defined globally.
+            updateMetaDisplay(act);
+        }
+    }
+
     setupNavigation();
     startTimerLoop();
     registerServiceWorker();
 });
 
+// --- Helper Functions ---
+
 function loadState() {
     const saved = localStorage.getItem(STATE_KEY);
     if (saved) {
         state = JSON.parse(saved);
-        // Resume logic could go here if needed
     }
 }
 
@@ -61,12 +75,11 @@ function renderActivities() {
         const btn = document.createElement('div');
         btn.className = `activity-btn ${state.currentActivityId === act.id ? 'active' : ''}`;
 
-        // Use Phosphor Icon class
-        const i = document.createElement('i');
-        i.className = `ph ${act.icon}`;
-        i.style.fontSize = '32px'; // Ensure good size
+        const img = document.createElement('img');
+        img.src = `./icons/${act.icon}`;
+        img.alt = act.label;
 
-        btn.appendChild(i);
+        btn.appendChild(img);
 
         btn.onclick = () => handleActivityClick(act);
         grid.appendChild(btn);
@@ -76,16 +89,11 @@ function renderActivities() {
 function handleActivityClick(activity) {
     const now = Date.now();
 
-    // 1. Logic for "Wake Up" (Start of Day)
     if (activity.id === 'wakeup') {
-        // Reset Day Timer
         state.dayStartTime = now;
         state.isDayStarted = true;
-        // Reset History for the day? Or keep continuous log?
-        // Requirement: "Day timer resets when wake up is pressed."
     }
 
-    // 2. Log Previous Activity (if any)
     if (state.currentActivityId && state.currentActivityStartTime) {
         const duration = now - state.currentActivityStartTime;
         state.history.push({
@@ -96,18 +104,17 @@ function handleActivityClick(activity) {
         });
     }
 
-    // 3. Switch Context
     state.currentActivityId = activity.id;
     state.currentActivityStartTime = now;
 
-    // 4. Update UI
-    updateMetaDisplay(activity);
-    renderActivities(); // To update active state styling
+    updateMetaDisplay(activity); // Update Label
+    renderActivities();
     saveState();
 }
 
 function updateMetaDisplay(activity) {
-    document.getElementById('currentActivityLabel').textContent = activity.label;
+    const el = document.getElementById('currentActivityLabel');
+    if (el) el.textContent = activity.label;
 }
 
 function startTimerLoop() {
@@ -124,25 +131,33 @@ function timerTick() {
 
     if (state.isDayStarted && state.dayStartTime) {
         const dayDiff = now - state.dayStartTime;
-        document.getElementById('dayTimer').textContent = formatTime(dayDiff); // Shows HH:MM:SS
-
-        // Update Side Panel Timeline
-        updateTimeline(dayDiff);
+        document.getElementById('dayTimer').textContent = formatTime(dayDiff);
     } else {
         document.getElementById('dayTimer').textContent = "00:00:00";
     }
 
+    // Always update timeline (Absolute Time of Day)
+    updateTimeline();
+
     requestAnimationFrame(timerTick);
 }
 
-function updateTimeline(dayDurationMs) {
-    // Assumption: A typical "Active Day" is ~16 hours (Wake 6am -> Sleep 10pm)
-    // We map 0 to 16h as 0% to 100%.
-    const TYPICAL_DAY_MS = 16 * 60 * 60 * 1000;
-    let percentage = (dayDurationMs / TYPICAL_DAY_MS) * 100;
+function updateTimeline() {
+    const now = new Date();
+    const currentH = now.getHours();
+    const currentM = now.getMinutes();
+    const nowMinutes = currentH * 60 + currentM;
 
-    if (percentage > 100) percentage = 100; // Cap at 100% or let it overflow?
-    // Let's cap visual at 100% (Moon)
+    // 04:30 AM (270 min) to 10:30 PM (1350 min)
+    const START_MIN = 270;
+    const END_MIN = 1350;
+    const TOTAL_DURATION = END_MIN - START_MIN;
+
+    let elapsed = nowMinutes - START_MIN;
+    if (elapsed < 0) elapsed = 0;
+
+    let percentage = (elapsed / TOTAL_DURATION) * 100;
+    if (percentage > 100) percentage = 100;
 
     const bar = document.getElementById('timelineProgress');
     if (bar) {
@@ -155,12 +170,6 @@ function formatTime(ms) {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
-
-    // Format: HH:MM:SS or MM:SS if < 1 hour? user wanted "Day timer... 24 hours"
-    // So always HH:MM:SS for Day Timer.
-    // For Activity Timer, maybe MM:SS? 
-    // Requirement says "Timer for current activity". I'll use HH:MM:SS for both for consistency.
-
     const pad = (n) => n.toString().padStart(2, '0');
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
@@ -172,24 +181,22 @@ function setupNavigation() {
             btns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // Mode Switching Logic (Placeholder)
             const mode = btn.dataset.mode;
-            console.log("Switch to mode:", mode);
-
             if (mode === 'run') {
                 document.getElementById('mainPanel').style.display = 'flex';
-            } else {
-                // Hide run panel for now
-                // document.getElementById('mainPanel').style.display = 'none';
             }
         });
     });
 }
 
 function registerServiceWorker() {
+    // DISABLE PWA CACHING FOR DEV
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Service Worker Registered'))
-            .catch(err => console.error('Service Worker Failed', err));
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (let registration of registrations) {
+                registration.unregister();
+                console.log("Service Worker Unregistered (Dev Mode)");
+            }
+        });
     }
 }

@@ -1,11 +1,6 @@
 :root {
-    --bg-color: #f7f8fc;
+    --bg-color: #ffffff;
     --text-color: #1c1c1e;
-    --panel-bg: rgba(255, 255, 255, 0.65);
-    --panel-border: rgba(255, 255, 255, 0.4);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-    --accent-color: #007aff;
-    --timer-bg: rgba(0, 0, 0, 0.05);
     --safe-area-top: env(safe-area-inset-top);
     --safe-area-bottom: env(safe-area-inset-bottom);
 }
@@ -16,17 +11,24 @@
     padding: 0;
     -webkit-tap-highlight-color: transparent;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    user-select: none; /* Prevent text selection for app-like feel */
+    user-select: none;
 }
 
 body {
     background: var(--bg-color);
     color: var(--text-color);
-    height: 100vh;
+    height: 100dvh;
     width: 100vw;
     overflow: hidden;
-    /* Basic background mesh gradient for visual interest */
-    background: radial-gradient(circle at 0% 0%, #e0eafc, #cfdef3);
+}
+
+/* Global Scrollbar Hide */
+::-webkit-scrollbar {
+    display: none;
+}
+
+* {
+    scrollbar-width: none;
 }
 
 .app-container {
@@ -34,135 +36,112 @@ body {
     height: 100%;
     width: 100%;
     /* 
-       Layout:
-       Rows: Main Content (Auto fill) | Bottom Nav (Fixed height)
-       Cols: Main Panel (1fr) | Side Panel (Fixed width)
+       Row 1: Main Content (Flexible)
+       Row 2: Bottom Section (Auto - contains Timers + Nav)
     */
-    grid-template-rows: 1fr 80px;
-    grid-template-columns: 1fr 60px;
-    grid-template-areas: 
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr 55px;
+    grid-template-areas:
         "main side"
-        "bottom side"; /* Side panel extends to bottom? Or Bottom takes full width? 
-                          User Mockup Step 57 shows Side Panel going all the way down, 
-                          covering the right edge alongside the main/bottom panels? 
-                          Actually Step 47 Image shows Side Panel distinct from Bottom Panel.
-                          Step 57 Mockup seems to show Side Panel as a full height column on the right. 
-                          I will follow Step 57 interpretation: Side Panel is full height right column.
-                        */
+        "bottom bottom";
     padding-top: var(--safe-area-top);
     padding-bottom: var(--safe-area-bottom);
+    background: #ffffff;
 }
 
-/* --- Panel 1: Main --- */
+/* --- Main Panel --- */
+/* --- Main Panel --- */
 .main-panel {
     grid-area: main;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    overflow-y: hidden; /* No scrolling per Requirement */
-    position: relative;
+    padding: 10px 5px 5px 15px;
+    overflow: hidden;
+    /* No scrolling allowed */
 }
 
 .activity-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 Columns for icons */
-    gap: 15px;
-    align-content: start; /* Pack items at top */
-    margin-bottom: 20px;
+    /* 3 Columns, 6 Rows - forced fit */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 8px;
+    /* Slightly tighter gap to ensure fit */
+    padding-bottom: 2px;
 }
 
 .activity-btn {
-    aspect-ratio: 1;
+    /* aspect-ratio removed to allow height shrinking */
     border-radius: 20px;
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: var(--glass-shadow);
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
     cursor: pointer;
-    transition: transform 0.1s active, background 0.2s;
 }
 
-.activity-btn:active {
-    transform: scale(0.95);
-    background: rgba(255, 255, 255, 0.9);
+.activity-btn img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    opacity: 0.85;
+    transform: scale(1.5);
+    /* Massive zoom per user request */
 }
 
 .activity-btn.active {
-    background: var(--text-color);
-    color: white;
+    background: #000000;
+    border-color: #000000;
 }
 
-.timers-container {
-    display: flex;
-    gap: 15px;
-    height: 80px;
+.activity-btn.active img {
+    filter: invert(1);
+    opacity: 1;
 }
 
-.timer-display {
-    flex: 1;
-    background: var(--panel-bg);
-    border-radius: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--panel-border);
-}
-
-.timer-value {
-    font-size: 24px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.timer-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    opacity: 0.6;
-    letter-spacing: 1px;
-}
-
-.current-activity-timer {
-    background: rgba(100, 255, 100, 0.2); /* Slight green tint */
-}
-
-.day-timer {
-    background: rgba(255, 165, 0, 0.2); /* Slight orange tint */
-}
-
-/* --- Panel 2: Side --- */
+/* --- Side Panel --- */
 .side-panel {
     grid-area: side;
-    background: rgba(255, 255, 255, 0.3);
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 5px 10px 0;
     display: flex;
     justify-content: center;
-    padding: 20px 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Timeline Background Wrapper (Transparent now) */
+.timeline-background {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    /* Removed Peach bg */
+    border-radius: 0;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
 }
 
 .timeline-visual {
-    width: 20px;
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
+    padding-bottom: 20px;
+    /* Protect bottom icon */
 }
 
 .timeline-track {
     flex: 1;
     width: 6px;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 3px;
-    margin: 10px 0;
+    margin: 8px 0;
     position: relative;
-    overflow: hidden;
 }
 
 .timeline-progress {
@@ -170,61 +149,127 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 30%; /* Dynamic */
-    background: orange; /* Sun color */
+    height: 0%;
+    background: #ff9500;
+    /* Darker Orange */
     border-radius: 3px;
     transition: height 1s linear;
 }
 
-.timeline-icon {
-    font-size: 16px;
+/* Visual Icons */
+.timeline-icon,
+.track-marker {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* --- Panel 3: Bottom --- */
-.bottom-panel {
+.track-marker {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.marker-noon {
+    top: 33%;
+}
+
+.marker-evening {
+    top: 66%;
+}
+
+
+/* --- Bottom Section (Timers + Nav) --- */
+.bottom-section {
     grid-area: bottom;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 16px 20px 16px;
+    background: #ffffff;
+    z-index: 50;
+    box-shadow: none !important;
+    /* Explicitly none */
+    border: none !important;
+}
+
+/* Timers Row */
+.timers-capsule {
+    display: flex;
+    gap: 12px;
+    height: 76px;
+    /* Increased by 20px per request */
+}
+
+.timer-pill {
+    flex: 1;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 34px;
+    /* Increased from 24px */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.green-pill {
+    background: #468e40;
+    /* Forest Green */
+}
+
+.orange-pill {
+    background: #f07c10;
+    /* Pumpkin Orange */
+}
+
+.timer-label-overlay {
+    font-size: 15px;
+    /* Increased from 13px */
+    font-weight: 700;
+    opacity: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0px;
+}
+
+/* Bottom Nav */
+.bottom-nav {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    background: var(--text-color); /* Dark nav as per mockup? Or light? Mockup looks darkish or contrasty */
-    background: #000; /* Requirement: "Detailed design... uploaded_media...". Looks like dark footer. */
-    border-radius: 24px; /* Floating bar look? */
-    margin: 10px 20px; /* Floating inside */
-    /* Wait, grid layout implies full width.
-       The last mockup shows a floating black bar at the bottom.
-       We should adjust layout.
-    */
-    /* Reset margin/radius if we want full width. 
-       Mockup shows floating pill at bottom. 
-       So I will styling it as floating pill inside the grid area. 
-    */
-    margin: 0 10px 10px 10px;
-    border-radius: 30px;
-    color: white;
+    background: #1c1c1e;
+    height: 64px;
+    border-radius: 32px;
+    padding: 0 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .nav-btn {
     background: none;
     border: none;
-    color: rgba(255,255,255,0.6);
-    font-size: 14px;
+    height: 100%;
+    flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 10px;
+    justify-content: center;
     cursor: pointer;
 }
 
-.nav-btn.active {
-    color: white;
+.nav-btn img {
+    width: 36px;
+    height: 36px;
+    filter: invert(0.6);
+    transition: filter 0.2s;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #000000;
-        --text-color: #ffffff;
-        --panel-bg: rgba(30, 30, 30, 0.65);
-        --panel-border: rgba(255, 255, 255, 0.1);
-    }
+.nav-btn.active img {
+    filter: invert(1);
+    transform: scale(1.1);
 }
