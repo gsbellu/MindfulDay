@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:15 PM"; /* Fixed activity sync */
+const BUILD_DATE = "31 Jan 2026, 11:18 PM"; /* Fixed render bug */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -107,6 +107,13 @@ function saveState() {
     stateRef.set(state).catch((error) => {
         console.log('Firebase save failed:', error);
     });
+}
+
+// Main render function - updates all UI elements
+function render() {
+    renderActivities();
+    updateTimerDisplays();
+    updateTimelineMarker();
 }
 
 function renderActivities() {
