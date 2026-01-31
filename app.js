@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 11:38 PM"; /* Removed CSS conflict */
+const BUILD_DATE = "31 Jan 2026, 11:45 PM"; /* Negative margin fix */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -77,6 +77,12 @@ function fixBottomSectionPosition() {
     bottomSection.style.left = '0';
     bottomSection.style.right = '0';
     bottomSection.style.transform = 'translateY(0)';
+
+    // In PWA standalone mode, push down into safe area
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        bottomSection.style.marginBottom = '-20px';
+        bottomSection.style.paddingBottom = '30px';
+    }
 
     // Adjust main container padding to prevent overlap
     const appContainer = document.querySelector('.app-container');
