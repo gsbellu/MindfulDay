@@ -229,10 +229,19 @@ body.settings-active .main-panel {
     border: none !important;
 }
 
-/* PWA Standalone Mode Fix for iPhone 16 */
+/* PWA Standalone Mode Fix - Force bottom alignment */
 @media all and (display-mode: standalone) {
+    body {
+        padding-bottom: 0 !important;
+    }
+
+    .app-container {
+        padding-bottom: 160px !important;
+    }
+
     .bottom-section {
-        padding-bottom: env(safe-area-inset-bottom, 34px);
+        bottom: -10px;
+        padding: 10px 16px 50px 16px;
     }
 }
 
