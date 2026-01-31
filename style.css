@@ -231,6 +231,15 @@ body.settings-active .main-panel {
 
 /* PWA-specific styles removed - now handled by JavaScript */
 
+/* Final PWA Alignment Fix - Extend into safe area */
+@media (display-mode: standalone) {
+    .bottom-section {
+        /* Push down by safe-area height to reach physical screen bottom */
+        bottom: calc(0px - env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 20px));
+    }
+}
+
 /* Timers Row */
 .timers-capsule {
     display: flex;
