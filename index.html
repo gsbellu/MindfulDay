@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MindfulDay</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=force_1">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧘</text></svg>">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -31,6 +31,11 @@
         <main class="main-panel" id="mainPanel">
             <!-- Content Injected via JS -->
             <div class="activity-grid" id="activityGrid"></div>
+        </main>
+
+        <!-- Settings Panel (Hidden by default) -->
+        <main class="main-panel" id="settingsPanel" style="display: none;">
+            <div id="settingsContent"></div>
         </main>
 
         <!-- Panel 2: Side Panel (Visualization) -->
@@ -93,7 +98,7 @@
         </section>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=force_1"></script>
 </body>
 
 </html>

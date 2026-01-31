@@ -3,6 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
+const BUILD_DATE = "31 Jan 2026, 6:40 PM";
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -89,7 +90,8 @@ function renderActivities() {
 function handleActivityClick(activity) {
     const now = Date.now();
 
-    if (activity.id === 'wakeup') {
+    // Start Day Timer on FIRST activity of any kind if not started
+    if (!state.isDayStarted) {
         state.dayStartTime = now;
         state.isDayStarted = true;
     }
@@ -184,6 +186,23 @@ function setupNavigation() {
             const mode = btn.dataset.mode;
             if (mode === 'run') {
                 document.getElementById('mainPanel').style.display = 'flex';
+                document.getElementById('settingsPanel').style.display = 'none';
+            } else if (mode === 'settings') {
+                document.getElementById('mainPanel').style.display = 'none';
+                document.getElementById('settingsPanel').style.display = 'block';
+                // Render Build Info
+                document.getElementById('settingsContent').innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <h2>MindfulDay</h2>
+                        <p>Version: 1.0.0</p>
+                        <p>Build: ${BUILD_DATE}</p>
+                        <br>
+                        <button onclick="localStorage.clear(); location.reload();" 
+                                style="padding: 10px 20px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px;">
+                            Reset App
+                        </button>
+                    </div>
+                `;
             }
         });
     });
