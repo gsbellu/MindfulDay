@@ -3,7 +3,7 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "31 Jan 2026, 6:40 PM";
+const BUILD_DATE = "31 Jan 2026, 9:25 PM"; /* Automatic Build Timestamp */
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -194,12 +194,18 @@ function setupNavigation() {
                 document.getElementById('settingsContent').innerHTML = `
                     <div style="padding: 20px; text-align: center;">
                         <h2>MindfulDay</h2>
-                        <p>Version: 1.0.0</p>
-                        <p>Build: ${BUILD_DATE}</p>
+                        <p style="color: #8e8e93; margin-top: 5px;">Build: ${BUILD_DATE}</p>
                         <br>
-                        <button onclick="localStorage.clear(); location.reload();" 
-                                style="padding: 10px 20px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px;">
-                            Reset App
+                        
+                        <!-- Force Refresh Button -->
+                        <button onclick="window.location.search = 't=' + Date.now();" 
+                                style="width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
+                            🔄 Check for Updates
+                        </button>
+
+                        <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); location.reload(); }" 
+                                style="width: 100%; padding: 15px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                            ⚠️ Reset App Data
                         </button>
                     </div>
                 `;
