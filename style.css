@@ -48,8 +48,8 @@ body {
     grid-template-areas:
         "main side";
     padding-top: var(--safe-area-top);
-    /* Reserve space for fixed bottom section */
-    padding-bottom: 170px;
+    /* Reserve space for fixed bottom section (timers + nav) */
+    padding-bottom: 200px;
     background: #ffffff;
 }
 
