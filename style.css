@@ -45,7 +45,7 @@ body {
         "main side"
         "bottom bottom";
     padding-top: var(--safe-area-top);
-    padding-bottom: var(--safe-area-bottom);
+    /* Safe area bottom moved to .bottom-section */
     background: #ffffff;
 }
 
@@ -215,7 +215,7 @@ body.settings-active .main-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 10px 16px 20px 16px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)) 16px;
     background: #ffffff;
     z-index: 50;
     box-shadow: none !important;
