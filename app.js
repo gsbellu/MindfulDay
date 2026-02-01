@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V6-01.02.2026-09:07 PM";
+const ClientVersion = "V11-01.02.2026-09:22 PM";
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -39,6 +39,7 @@ let state = {
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
+    checkUpdateSuccess();
     renderActivities();
 
     // Restore Label if activity is active
@@ -364,44 +365,55 @@ function toggleMonitorView() {
 }
 
 function setupNavigation() {
-    const bottomNav = document.querySelector('.bottom-nav');
-    if (!bottomNav) return;
+    const navButtons = document.querySelectorAll('.nav-btn');
 
-    // Monitor button (data-mode="measure")
-    const monitorBtn = bottomNav.querySelector('[data-mode="measure"]');
-    if (monitorBtn) {
-        monitorBtn.onclick = (e) => {
+    navButtons.forEach(btn => {
+        btn.onclick = (e) => {
             e.preventDefault();
-            toggleMonitorView();
+            const mode = btn.dataset.mode;
+            if (mode) switchMode(mode);
         };
-    }
-
-    // Settings button (data-mode="settings")
-    const settingsBtn = bottomNav.querySelector('[data-mode="settings"]');
-    if (settingsBtn) {
-        settingsBtn.onclick = (e) => {
-            e.preventDefault();
-            renderSettings();
-        };
-    }
+    });
 }
 
-function toggleSettingsMode(isSettings) {
-    const side = document.querySelector('.side-panel');
-    const timers = document.querySelector('.timers-capsule');
+function switchMode(mode) {
+    // 1. Update Nav Buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.mode === mode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
-    if (isSettings) {
-        if (side) {
-            side.style.display = 'none';
-            side.style.visibility = 'hidden';
-        }
-        if (timers) timers.style.visibility = 'hidden';
-    } else {
-        if (side) {
-            side.style.display = 'flex';
-            side.style.visibility = 'visible';
-        }
-        if (timers) timers.style.visibility = 'visible';
+    // 2. Handle Panels & Content
+    const mainPanel = document.getElementById('mainPanel');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const body = document.body;
+
+    switch (mode) {
+        case 'run':
+            mainPanel.style.display = 'flex';
+            settingsPanel.style.display = 'none';
+            body.classList.remove('monitor-active');
+            toggleSettingsMode(false);
+            break;
+
+        case 'measure':
+            mainPanel.style.display = 'flex';
+            settingsPanel.style.display = 'none';
+            body.classList.add('monitor-active');
+            toggleSettingsMode(false);
+            renderMonitorView();
+            break;
+
+        case 'settings':
+            mainPanel.style.display = 'none';
+            settingsPanel.style.display = 'flex';
+            body.classList.remove('monitor-active'); // Ensure monitor doesn't bleed through
+            toggleSettingsMode(true);
+            renderSettings();
+            break;
     }
 }
 
@@ -421,12 +433,13 @@ async function getServerVersion() {
 }
 
 async function renderSettings() {
-    document.getElementById('mainPanel').style.display = 'none';
-    document.getElementById('settingsPanel').style.display = 'flex';
-    toggleSettingsMode(true);
-
     const serverVer = await getServerVersion();
     const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
+
+    // Button style: Grey if disabled, Blue if enabled
+    const btnColor = isMismatch ? '#007aff' : '#ccc';
+    const btnText = isMismatch ? 'Update' : 'Up to Date';
+    const btnDisabled = isMismatch ? '' : 'disabled';
 
     document.getElementById('settingsContent').innerHTML = `
         <div style="padding: 20px; text-align: center; margin-top: 50px;">
@@ -439,8 +452,9 @@ async function renderSettings() {
 
             <button onclick="performUpdate()" 
                     id="updateBtn"
-                    style="width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
-                Update
+                    ${btnDisabled}
+                    style="width: 100%; padding: 15px; background: ${btnColor}; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
+                ${btnText}
             </button>
 
             <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
@@ -455,6 +469,9 @@ async function performUpdate() {
     const btn = document.getElementById('updateBtn');
     if (btn) btn.textContent = "Updating...";
 
+    // Set flag to show alert on reload
+    localStorage.setItem('justUpdated', 'true');
+
     // Unregister SW to force fresh load on next visit immediately, or trigger update found
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -465,6 +482,36 @@ async function performUpdate() {
 
     // Force reload ignoring cache
     window.location.reload(true);
+}
+
+function checkUpdateSuccess() {
+    if (localStorage.getItem('justUpdated') === 'true') {
+        localStorage.removeItem('justUpdated');
+        // Give UI a moment to render
+        setTimeout(() => {
+            alert(`Application successfully updated!\n\nCurrent Version:\n${ClientVersion}`);
+        }, 500);
+    }
+}
+
+
+function toggleSettingsMode(isSettings) {
+    const side = document.querySelector('.side-panel');
+    const timers = document.querySelector('.timers-capsule');
+
+    if (isSettings) {
+        if (side) {
+            side.style.display = 'none';
+            side.style.visibility = 'hidden';
+        }
+        if (timers) timers.style.visibility = 'hidden';
+    } else {
+        if (side) {
+            side.style.display = 'flex';
+            side.style.visibility = 'visible';
+        }
+        if (timers) timers.style.visibility = 'visible';
+    }
 }
 
 
