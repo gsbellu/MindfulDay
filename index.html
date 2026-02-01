@@ -8,10 +8,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MindfulDay</title>
-    <link rel="manifest" href="manifest.json?v=20260201">
-    <link rel="stylesheet" href="style.css?v=20260201001800">
-    <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧘</text></svg>">
+    <link rel="manifest" href="manifest.json?v=2.1">
+    <link rel="stylesheet" href="style.css?v=2.1">
+    <link rel="icon" type="image/png" href="lotus-icon.png">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <!-- Firebase SDK -->
@@ -35,6 +34,9 @@
         <main class="main-panel" id="mainPanel">
             <!-- Content Injected via JS -->
             <div class="activity-grid" id="activityGrid"></div>
+
+            <!-- Monitor View -->
+            <div class="monitor-view" id="monitorView"></div>
         </main>
 
         <!-- Settings Panel (Hidden by default) -->

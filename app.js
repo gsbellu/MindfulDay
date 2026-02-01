@@ -3,7 +3,8 @@
  */
 
 const STATE_KEY = 'mindfulDayState';
-const BUILD_DATE = "1 Feb 2026, 12:30 AM"; /* Final alignment attempt */
+// This value is updated automatically by update_version.js
+const ClientVersion = "V6-01.02.2026-09:07 PM";
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -53,45 +54,77 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     startTimerLoop();
     registerServiceWorker();
-
-    // Fix bottom section position for PWA
-    fixBottomSectionPosition();
-    window.addEventListener('resize', fixBottomSectionPosition);
-    window.addEventListener('orientationchange', fixBottomSectionPosition);
 });
 
-// Fix bottom section alignment in PWA standalone mode
-function fixBottomSectionPosition() {
-    const bottomSection = document.querySelector('.bottom-section');
-    if (!bottomSection) return;
+// --- Helper Functions ---
 
-    // Get actual viewport height
-    const vh = window.innerHeight;
-
-    // Calculate bottom section height
-    const bottomHeight = bottomSection.offsetHeight;
-
-    // Position bottom section at the very bottom
-    bottomSection.style.position = 'fixed';
-    bottomSection.style.bottom = '0';
-    bottomSection.style.left = '0';
-    bottomSection.style.right = '0';
-    bottomSection.style.transform = 'translateY(0)';
-
-    // In PWA standalone mode, push down into safe area
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        bottomSection.style.marginBottom = '-20px';
-        bottomSection.style.paddingBottom = '30px';
-    }
-
-    // Adjust main container padding to prevent overlap
-    const appContainer = document.querySelector('.app-container');
-    if (appContainer) {
-        appContainer.style.paddingBottom = (bottomHeight + 10) + 'px';
-    }
+// Format timestamp to 12-hour time
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 
-// --- Helper Functions ---
+// Format duration in milliseconds to human-readable
+function formatDuration(ms) {
+    const totalMinutes = Math.floor(ms / 60000);
+    if (totalMinutes < 60) {
+        return `${totalMinutes} min${totalMinutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (minutes === 0) {
+        return `${hours} hr${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours}h ${minutes}m`;
+}
+
+// Get activity summary for monitor view
+function getActivitySummary() {
+    const summary = {};
+
+    // Initialize all activities
+    ACTIVITIES.forEach(act => {
+        summary[act.id] = {
+            activityId: act.id,
+            label: act.label,
+            icon: act.icon,
+            count: 0,
+            totalDuration: 0,
+            firstOccurrence: null
+        };
+    });
+
+    // Process history
+    state.history.forEach(entry => {
+        const activityId = entry.activityId;
+        if (summary[activityId]) {
+            summary[activityId].count++;
+            summary[activityId].totalDuration += entry.duration;
+            if (!summary[activityId].firstOccurrence) {
+                summary[activityId].firstOccurrence = entry.startTime;
+            }
+        }
+    });
+
+    // Include current activity if active
+    if (state.currentActivityId && state.currentActivityStartTime) {
+        const currentDuration = Date.now() - state.currentActivityStartTime;
+        if (summary[state.currentActivityId]) {
+            if (summary[state.currentActivityId].count === 0) {
+                summary[state.currentActivityId].firstOccurrence = state.currentActivityStartTime;
+            }
+            summary[state.currentActivityId].count++;
+            summary[state.currentActivityId].totalDuration += currentDuration;
+        }
+    }
+
+    return Object.values(summary);
+}
+
 
 // Get unique device ID (or create one)
 function getDeviceId() {
@@ -149,6 +182,40 @@ function saveState() {
 function render() {
     renderActivities();
     // Timer updates happen via setInterval, not here
+}
+
+function renderMonitorView() {
+    const monitorContainer = document.getElementById('monitorView');
+    if (!monitorContainer) return;
+
+    const summary = getActivitySummary();
+
+    // Sort by first occurrence (tracked first, then by time)
+    summary.sort((a, b) => {
+        if (a.firstOccurrence && !b.firstOccurrence) return -1;
+        if (!a.firstOccurrence && b.firstOccurrence) return 1;
+        if (!a.firstOccurrence && !b.firstOccurrence) return 0;
+        return a.firstOccurrence - b.firstOccurrence;
+    });
+
+    monitorContainer.innerHTML = summary.map(item => {
+        const tracked = item.count > 0;
+        const timeStr = tracked ? formatTime(item.firstOccurrence) : '';
+        const countStr = item.count > 1 ? ` (${item.count})` : '';
+        const durationStr = tracked ? formatDuration(item.totalDuration) : 'Not tracked';
+
+        return `
+            <div class="activity-row ${tracked ? 'tracked' : 'not-tracked'}">
+                <img src="./icons/${item.icon}" class="activity-row-icon" alt="${item.label}">
+                <div class="activity-row-details">
+                    <div class="activity-row-name">${item.label}</div>
+                    <div class="activity-row-info">
+                        ${tracked ? `${timeStr}${countStr} - ${durationStr}` : durationStr}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderActivities() {
@@ -287,44 +354,36 @@ function formatTime(ms) {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+// Toggle Monitor View
+function toggleMonitorView() {
+    const isMonitorActive = document.body.classList.toggle('monitor-active');
+
+    if (isMonitorActive) {
+        renderMonitorView();
+    }
+}
+
 function setupNavigation() {
-    const btns = document.querySelectorAll('.nav-btn');
-    btns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            btns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (!bottomNav) return;
 
-            const mode = btn.dataset.mode;
-            if (mode === 'run') {
-                document.getElementById('mainPanel').style.display = 'flex';
-                document.getElementById('settingsPanel').style.display = 'none';
-                toggleSettingsMode(false);
-            } else if (mode === 'settings') {
-                document.getElementById('mainPanel').style.display = 'none';
-                document.getElementById('settingsPanel').style.display = 'flex';
-                toggleSettingsMode(true);
-                // Render Build Info
-                document.getElementById('settingsContent').innerHTML = `
-                    <div style="padding: 20px; text-align: center; margin-top: 50px;">
-                        <h2>MindfulDay</h2>
-                        <p style="color: #8e8e93; margin-top: 5px;">Build: ${BUILD_DATE}</p>
-                        <br>
-                        
-                        <!-- Force Refresh Button -->
-                        <button onclick="checkForUpdates()" 
-                                style="width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
-                            🔄 Check for Updates
-                        </button>
+    // Monitor button (data-mode="measure")
+    const monitorBtn = bottomNav.querySelector('[data-mode="measure"]');
+    if (monitorBtn) {
+        monitorBtn.onclick = (e) => {
+            e.preventDefault();
+            toggleMonitorView();
+        };
+    }
 
-                        <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
-                                style="width: 100%; padding: 15px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;">
-                            ⚠️ Reset App Data
-                        </button>
-                    </div>
-                `;
-            }
-        });
-    });
+    // Settings button (data-mode="settings")
+    const settingsBtn = bottomNav.querySelector('[data-mode="settings"]');
+    if (settingsBtn) {
+        settingsBtn.onclick = (e) => {
+            e.preventDefault();
+            renderSettings();
+        };
+    }
 }
 
 function toggleSettingsMode(isSettings) {
@@ -332,55 +391,119 @@ function toggleSettingsMode(isSettings) {
     const timers = document.querySelector('.timers-capsule');
 
     if (isSettings) {
-        if (side) side.style.display = 'none';
-        if (timers) timers.style.visibility = 'hidden'; // Keep space or remove? User said "empty page". Let's hide visibility to keep layout stable or display none?
-        // User screenshot shows grid structure. If we hide side panel, main panel might stretch.
-        // Let's rely on CSS class if possible, but inline is faster for now.
-        // Actually, let's use display:none for side, but we might lose grid alignment.
-        // Let's try opacity 0 for side to keep layout, or just hide it.
-        if (side) side.style.visibility = 'hidden';
+        if (side) {
+            side.style.display = 'none';
+            side.style.visibility = 'hidden';
+        }
+        if (timers) timers.style.visibility = 'hidden';
     } else {
-        if (side) side.style.display = 'flex';
-        if (side) side.style.visibility = 'visible';
+        if (side) {
+            side.style.display = 'flex';
+            side.style.visibility = 'visible';
+        }
         if (timers) timers.style.visibility = 'visible';
     }
 }
 
-async function checkForUpdates() {
+// --- Versioning & Update Logic ---
+
+
+async function getServerVersion() {
     try {
-        const btn = document.querySelector('button[onclick="checkForUpdates()"]');
-        if (btn) btn.textContent = "Checking...";
-
-        // Fetch app.js with cache busting
-        const response = await fetch('app.js?v=' + Date.now());
-        const text = await response.text();
-
-        // Extract DATE from the file
-        const match = text.match(/const BUILD_DATE = "(.*?)";/);
-        const serverDate = match ? match[1] : null;
-
-        if (serverDate && serverDate !== BUILD_DATE) {
-            if (confirm(`Update Available!\nServer: ${serverDate}\nCurrent: ${BUILD_DATE}\n\nDownload now?`)) {
-                window.location.search = 'v=' + Date.now();
-            }
-        } else {
-            alert("No update available.\nYou are on the latest version.");
-        }
-
-        if (btn) btn.textContent = "🔄 Check for Updates";
+        const response = await fetch('version.json?t=' + Date.now());
+        if (!response.ok) throw new Error("ver.json missing");
+        const data = await response.json();
+        return data.version;
     } catch (e) {
-        alert("Error checking for updates.\\n" + e.message);
+        console.warn("Could not fetch server version:", e);
+        return "Unknown";
     }
 }
 
-function registerServiceWorker() {
-    // DISABLE PWA CACHING FOR DEV
+async function renderSettings() {
+    document.getElementById('mainPanel').style.display = 'none';
+    document.getElementById('settingsPanel').style.display = 'flex';
+    toggleSettingsMode(true);
+
+    const serverVer = await getServerVersion();
+    const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
+
+    document.getElementById('settingsContent').innerHTML = `
+        <div style="padding: 20px; text-align: center; margin-top: 50px;">
+            <h2>MindfulDay</h2>
+            
+            <div style="margin: 20px 0; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 10px; text-align: left;">
+                <p style="margin: 5px 0;"><strong>Client Version:</strong> <br><span style="color: #007aff;">${ClientVersion}</span></p>
+                <p style="margin: 5px 0; border-top: 1px solid #ccc; padding-top: 5px;"><strong>Server Version:</strong> <br><span style="color: ${isMismatch ? '#ff9500' : '#34c759'};">${serverVer}</span></p>
+            </div>
+
+            <button onclick="performUpdate()" 
+                    id="updateBtn"
+                    style="width: 100%; padding: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
+                Update
+            </button>
+
+            <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
+                    style="width: 100%; padding: 15px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                ⚠️ Reset App Data
+            </button>
+        </div>
+    `;
+}
+
+async function performUpdate() {
+    const btn = document.getElementById('updateBtn');
+    if (btn) btn.textContent = "Updating...";
+
+    // Unregister SW to force fresh load on next visit immediately, or trigger update found
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-            for (let registration of registrations) {
-                registration.unregister();
-                console.log("Service Worker Unregistered (Dev Mode)");
-            }
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.update(); // Try to update the SW
+        }
+    }
+
+    // Force reload ignoring cache
+    window.location.reload(true);
+}
+
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then((reg) => {
+                console.log('Service Worker Registered', reg);
+
+                // Check if there's a waiting SW (update ready)
+                if (reg.waiting) {
+                    // Update available
+                }
+
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed') {
+                            if (navigator.serviceWorker.controller) {
+                                // New content available; please refresh.
+                                console.log("New content available");
+                            } else {
+                                // Content cached for offline use.
+                                console.log("Content cached for offline use");
+                            }
+                        }
+                    };
+                };
+            })
+            .catch((err) => {
+                console.error('Service Worker Registration Failed', err);
+            });
+
+        // Handle controller change (when new SW takes over)
+        let refreshing;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            window.location.reload();
+            refreshing = true;
         });
     }
 }

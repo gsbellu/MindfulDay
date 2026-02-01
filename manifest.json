@@ -1,20 +1,20 @@
 {
     "name": "MindfulDay",
     "short_name": "Mindful",
-    "start_url": "./index.html?v=20260201001800",
+    "start_url": "./index.html?v=2.1",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#ffffff",
     "icons": [
         {
-            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧘</text></svg>",
+            "src": "lotus-icon.png",
             "sizes": "192x192",
-            "type": "image/svg+xml"
+            "type": "image/png"
         },
         {
-            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧘</text></svg>",
+            "src": "lotus-icon.png",
             "sizes": "512x512",
-            "type": "image/svg+xml"
+            "type": "image/png"
         }
     ]
 }

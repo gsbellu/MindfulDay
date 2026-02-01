@@ -1,0 +1,13 @@
+{
+    "name": "mindfulday-pwa",
+    "version": "1.0.0",
+    "description": "MindfulDay PWA",
+    "main": "app.js",
+    "scripts": {
+        "update-version": "node update_version.js",
+        "start": "node update_version.js && npx -y http-server -c-1"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {}
+}
