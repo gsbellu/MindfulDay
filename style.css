@@ -229,7 +229,8 @@ body.monitor-active .monitor-view {
     position: relative;
     /* In flow */
     height: auto;
-    width: 100%;
+    width: 90%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -239,6 +240,7 @@ body.monitor-active .monitor-view {
     background: #ffffff;
     z-index: 100;
     box-shadow: none !important;
+    border-radius: 20px 20px 0 0;
 }
 
 /* PWA-specific styles removed - now handled above */
