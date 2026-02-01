@@ -43,26 +43,27 @@ body {
     display: grid;
     height: 100%;
     width: 100%;
-    grid-template-rows: 1fr;
     grid-template-columns: 1fr 30px;
+    grid-template-rows: 1fr auto;
+    /* Content | Bottom Section */
     grid-template-areas:
-        "main side";
+        "main side"
+        "bottom bottom";
     padding-top: var(--safe-area-top);
-    /* Reserve space for fixed bottom section (timers + nav) */
-    padding-bottom: 10px;
+    padding-bottom: 0;
+    /* Handled by bottom section */
     background: #ffffff;
 }
 
 /* --- Main Panel --- */
-/* --- Main Panel --- */
 .main-panel {
-    /*border: 1px solid red;*/
     grid-area: main;
     display: flex;
+    /* Restored to Flex */
     flex-direction: column;
     padding: 10px;
-    height: calc(100vh - 190px);
-    overflow: hidden;
+    height: 100%;
+    /* Fill grid cell */
     overflow: hidden;
     /* No scrolling allowed */
 }
@@ -77,8 +78,8 @@ body.settings-active .activity-grid {
 body.settings-active .main-panel {
     grid-column: 1 / -1;
     /* Full Width */
-    grid-row: 1 / -1;
-    /* Full Height */
+    grid-row: 1 / 2;
+    /* Occupy first row only */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -194,7 +195,8 @@ body.monitor-active .monitor-view {
     padding: 0;
     display: flex;
     justify-content: center;
-    height: calc(100vh - 190px);
+    height: 100%;
+    /* Fill grid cell */
     overflow: hidden;
 }
 
@@ -221,90 +223,25 @@ body.monitor-active .monitor-view {
     /* Protect bottom icon */
 }
 
-.timeline-track {
-    flex: 1;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 0;
-    margin: 0;
-    position: relative;
-}
-
-.timeline-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 0%;
-    background: #ff9500;
-    /* Darker Orange */
-    border-radius: 3px;
-    transition: height 1s linear;
-}
-
-.timeline-icon img,
-.track-marker img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transform: none !important;
-    /* Prevent activity-btn scale from leaking if wild selector */
-}
-
-/* Visual Icons */
-.timeline-icon,
-.track-marker {
-    width: 24px;
-    /* Reduced from 32px */
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.track-marker {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.marker-noon {
-    top: 33%;
-}
-
-.marker-evening {
-    top: 66%;
-}
-
-
 /* --- Bottom Section (Timers + Nav) --- */
 .bottom-section {
-    position: fixed;
-    bottom: 0;
-    height: 190px;
+    grid-area: bottom;
+    position: relative;
+    /* In flow */
+    height: auto;
     width: 100%;
-    left: 0;
-    transform: none;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)) 16px;
+    padding: 10px 16px;
+    /* Add Safe Area Padding to bottom */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     background: #ffffff;
     z-index: 100;
     box-shadow: none !important;
-    /*border: 1px solid blue !important;*/
 }
 
-/* PWA-specific styles removed - now handled by JavaScript */
-
-/* Final PWA Alignment Fix - Extend into safe area */
-@media (display-mode: standalone) {
-    .bottom-section {
-        /* Push down by safe-area height to reach physical screen bottom */
-        bottom: calc(0px - env(safe-area-inset-bottom, 0px));
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 20px));
-    }
-}
+/* PWA-specific styles removed - now handled above */
 
 /* Timers Row */
 .timers-capsule {
