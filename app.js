@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V23-02.02.2026-10:18 PM";
+const ClientVersion = "V24-02.02.2026-10:26 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
@@ -105,7 +105,7 @@ function getActivitySummary(targetHistory = null) {
     const historyToUse = targetHistory || state.history;
 
     // Initialize all activities
-    ACTIVITIES.forEach(act => {
+    getActivities().forEach(act => {
         summary[act.id] = {
             activityId: act.id,
             label: act.label,
