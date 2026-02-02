@@ -1,0 +1,48 @@
+/* --- Activity Settings --- */
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #000;
+    margin-bottom: 10px;
+}
+
+.settings-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.settings-input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    font-family: inherit;
+    /* border-radius: 4px; */
+    /* User mock shows square-ish */
+}
+
+.settings-name {
+    flex: 2;
+    min-width: 0;
+}
+
+.settings-time {
+    width: 80px;
+    text-align: center;
+}
+
+.settings-duration {
+    width: 50px;
+    text-align: center;
+}

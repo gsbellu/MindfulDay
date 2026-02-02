@@ -30,13 +30,28 @@
 
 <body>
     <div class="app-container">
+        <!-- Panel 0: Left Panel (Reserved) -->
+        <aside class="left-panel">
+            <div class="timeline-background">
+                <div class="timeline-visual" id="lifeVisual">
+                    <div class="timeline-icon top-icon">
+                        <img src="icons/baby.svg" alt="Born">
+                    </div>
+                    <div class="timeline-track">
+                        <div class="life-progress-bar" id="lifeProgress"></div>
+                        <div class="life-progress-text" id="lifeProgressText">Loading...</div>
+                    </div>
+                    <div class="timeline-icon bottom-icon">
+                        <img src="icons/old.svg" alt="End">
+                    </div>
+                </div>
+            </div>
+        </aside>
+
         <!-- Panel 1: Main Panel (Run Mode) -->
         <main class="main-panel" id="mainPanel">
             <!-- Content Injected via JS -->
             <div class="activity-grid" id="activityGrid"></div>
-
-            <!-- Monitor View -->
-            <div class="monitor-view" id="monitorView"></div>
 
             <!-- Focus View (New) -->
             <div class="focus-view" id="focusView" style="display: none;">
@@ -62,9 +77,35 @@
             </div>
         </main>
 
-        <!-- Settings Panel (Hidden by default) -->
+        <!-- Panel 1.5: Measure Panel (New) -->
+        <main class="main-panel" id="measurePanel" style="display: none;">
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-target="measureToday">Today</button>
+                <button class="tab-btn" data-target="measureYesterday">Yesterday</button>
+            </div>
+
+            <div id="measureToday" class="tab-content monitor-view">
+                <!-- Content Injected via JS -->
+            </div>
+            <div id="measureYesterday" class="tab-content monitor-view" style="display: none;">
+                <div style="padding: 20px; text-align: center; color: #888;">No data for yesterday</div>
+            </div>
+        </main>
+
+        <!-- Settings Panel -->
         <main class="main-panel" id="settingsPanel" style="display: none;">
-            <div id="settingsContent"></div>
+            <div class="tab-navigation">
+                <button class="tab-btn" data-target="settingsActivity">Activity</button>
+                <button class="tab-btn active" data-target="settingsGeneral">General</button>
+            </div>
+
+            <div id="settingsActivity" class="tab-content" style="display: none;">
+                <div style="padding: 20px; text-align: center; color: #888;">Activity Settings Coming Soon</div>
+            </div>
+
+            <div id="settingsGeneral" class="tab-content">
+                <div id="settingsContent"></div>
+            </div>
         </main>
 
         <!-- Panel 2: Side Panel (Visualization) -->

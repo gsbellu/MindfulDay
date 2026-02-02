@@ -43,12 +43,12 @@ body {
     display: grid;
     height: 100%;
     width: 100%;
-    grid-template-columns: 1fr 30px;
+    grid-template-columns: 30px 1fr 30px;
     grid-template-rows: 1fr auto;
     /* Content | Bottom Section */
     grid-template-areas:
-        "main side"
-        "bottom bottom";
+        "left main side"
+        "bottom bottom bottom";
     padding-top: var(--safe-area-top);
     padding-bottom: 0;
     /* Handled by bottom section */
@@ -66,9 +66,12 @@ body {
     /* Fill grid cell */
     overflow: hidden;
     /* No scrolling allowed */
+    position: relative;
+    /* Contain Focus View */
 }
 
 /* Settings Mode Overrides */
+body.settings-active .left-panel,
 body.settings-active .side-panel,
 body.settings-active .timers-capsule,
 body.settings-active .activity-grid {
@@ -97,8 +100,9 @@ body.settings-active .main-panel {
 }
 
 /* --- Monitor View --- */
+/* --- Monitor View --- */
 .monitor-view {
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 10px 5px 5px 5px;
@@ -106,12 +110,39 @@ body.settings-active .main-panel {
     flex: 1;
 }
 
-body.monitor-active .activity-grid {
-    display: none;
+/* Tab Navigation Styling */
+.tab-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 
-body.monitor-active .monitor-view {
+.tab-btn {
+    background: #f2f2f7;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #8e8e93;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: #000000;
+    color: #ffffff;
+}
+
+.tab-content {
+    flex: 1;
+    overflow-y: auto;
+    width: 100%;
     display: flex;
+    flex-direction: column;
 }
 
 .activity-row {
@@ -283,16 +314,24 @@ body.monitor-active .monitor-view {
     /* Compromise size to fit in smaller box */
 }
 
-/* --- Side Panel --- */
-.side-panel {
+/* --- Side Panels --- */
+.side-panel,
+.left-panel {
     /*border: 1px solid green;*/
-    grid-area: side;
     padding: 0;
     display: flex;
     justify-content: center;
     height: 100%;
     /* Fill grid cell */
     overflow: hidden;
+}
+
+.left-panel {
+    grid-area: left;
+}
+
+.side-panel {
+    grid-area: side;
 }
 
 /* Timeline Background Wrapper (Transparent now) */
@@ -316,6 +355,69 @@ body.monitor-active .monitor-view {
     justify-content: space-between;
     padding-bottom: 0px;
     /* Protect bottom icon */
+}
+
+.timeline-track {
+    flex: 1;
+    width: 100%;
+    /* Fill panel width */
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 15px;
+    /* Rounded pill */
+    overflow: hidden;
+    /* Clip inner bar */
+    position: relative;
+    margin: 5px 0;
+}
+
+.timeline-progress {
+    width: 100%;
+    /* Sun raise (orange) - mid day (silver) - evening (orange) - Night (black) */
+    background: linear-gradient(to bottom, #ff9500, #e5e5ea, #ff9500, #000000);
+    border-radius: 15px;
+    /* Height set by JS */
+    min-height: 0%;
+    max-height: 100%;
+}
+
+.timeline-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+}
+
+.timeline-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.track-marker {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.track-marker img {
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+}
+
+.marker-noon {
+    top: 50%;
+}
+
+.marker-evening {
+    top: 75%;
 }
 
 /* --- Bottom Section (Timers + Nav) --- */
@@ -417,4 +519,134 @@ body.monitor-active .monitor-view {
 .nav-btn.active img {
     filter: invert(1);
     transform: scale(1.1);
+}
+
+/* --- Activity Settings --- */
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #000;
+    margin-bottom: 10px;
+}
+
+.settings-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.settings-input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    font-family: inherit;
+    /* border-radius: 4px; */
+    /* User mock shows square-ish */
+}
+
+.settings-name {
+    flex: 2;
+    min-width: 0;
+}
+
+.settings-time {
+    width: 80px;
+    text-align: center;
+}
+
+.settings-duration {
+    width: 50px;
+    text-align: center;
+}
+
+/* --- Start to End Settings --- */
+.ste-section {
+    margin-top: 30px;
+    border: 1px solid #1c3d5a;
+    border-radius: 20px;
+    padding: 25px 20px 20px 20px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.ste-title {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: var(--bg-color);
+    padding: 0 8px;
+    font-size: 16px;
+    color: #1c3d5a;
+    font-weight: 500;
+}
+
+.ste-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.ste-row:last-child {
+    margin-bottom: 0;
+}
+
+.ste-label {
+    width: 100px;
+    font-weight: normal;
+}
+
+.ste-input {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    width: 150px;
+    border-radius: 4px;
+}
+
+.ste-input-small {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    width: 70px;
+    margin-right: 10px;
+    border-radius: 4px;
+}
+
+/* Life Progress Visual */
+.life-progress-bar {
+    width: 100%;
+    /* Baby (top, green) to Old (bottom, red) */
+    background: linear-gradient(to bottom, #4cd964, #ff3b30);
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: height 0.5s ease;
+    border-radius: 15px;
+    /* Height set by JS */
+}
+
+.life-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    white-space: nowrap;
+    font-size: 24px;
+    /* ~80% of 30px panel width */
+    font-weight: 700;
+    color: #1c3d5a;
+    z-index: 2;
+    pointer-events: none;
 }

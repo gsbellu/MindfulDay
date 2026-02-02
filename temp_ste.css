@@ -1,0 +1,53 @@
+/* --- Start to End Settings --- */
+.ste-section {
+    margin-top: 30px;
+    border: 1px solid #1c3d5a;
+    border-radius: 20px;
+    padding: 25px 20px 20px 20px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.ste-title {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: var(--bg-color);
+    padding: 0 8px;
+    font-size: 16px;
+    color: #1c3d5a;
+    font-weight: 500;
+}
+
+.ste-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.ste-row:last-child {
+    margin-bottom: 0;
+}
+
+.ste-label {
+    width: 100px;
+    font-weight: normal;
+}
+
+.ste-input {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    width: 150px;
+    border-radius: 4px;
+}
+
+.ste-input-small {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    width: 70px;
+    margin-right: 10px;
+    border-radius: 4px;
+}

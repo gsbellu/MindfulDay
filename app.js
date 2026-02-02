@@ -4,28 +4,28 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V22-02.02.2026-08:15 PM";
+const ClientVersion = "V23-02.02.2026-10:18 PM";
 
 // Correct SVG List
-const ACTIVITIES = [
-    { id: 'wakeup', icon: 'wake-up_activity.svg', label: 'Wake Up' },
-    { id: 'bath', icon: 'bath_activity.svg', label: 'Bath' },
-    { id: 'medicines', icon: 'ayurveda_activity.svg', label: 'Meds' },
-    { id: 'sadhana', icon: 'sadhana_activity.svg', label: 'Sadhana' },
-    { id: 'family', icon: 'family-time_activity.svg', label: 'Family' },
-    { id: 'exercise', icon: 'exercise_activity.svg', label: 'Exercise' },
-    { id: 'breakfast', icon: 'eat_activity.svg', label: 'Breakfast' },
-    { id: 'dress', icon: 'dress-up_activity.svg', label: 'Dress' },
-    { id: 'drive', icon: 'drive_activity.svg', label: 'Drive' },
-    { id: 'work', icon: 'office-work_activity.svg', label: 'Work' },
-    { id: 'shoonya', icon: 'sadhana_activity.svg', label: 'Shoonya' },
-    { id: 'lunch', icon: 'eat_activity.svg', label: 'Lunch' },
-    { id: 'chat', icon: 'chat_activity.svg', label: 'Chat' },
-    { id: 'coffee', icon: 'coffee-break_activity.svg', label: 'Coffee' },
-    { id: 'entertainment', icon: 'entertainment_activity.svg', label: 'Fun' },
-    { id: 'walk', icon: 'walk_activity.svg', label: 'Walk' },
-    { id: 'hobby', icon: 'hobby_activity.svg', label: 'Hobby' },
-    { id: 'sleep', icon: 'sleep_activity.svg', label: 'Sleep' }
+const DEFAULT_ACTIVITIES = [
+    { id: 'wakeup', icon: 'wake-up_activity.svg', label: 'Wake Up', startTime: '5:00 AM', duration: 10 },
+    { id: 'bath', icon: 'bath_activity.svg', label: 'Bath', startTime: '5:15 AM', duration: 20 },
+    { id: 'medicines', icon: 'ayurveda_activity.svg', label: 'Meds', startTime: '5:45 AM', duration: 15 },
+    { id: 'sadhana', icon: 'sadhana_activity.svg', label: 'Sadhana', startTime: '6:00 AM', duration: 120 },
+    { id: 'family', icon: 'family-time_activity.svg', label: 'Family', startTime: '8:00 AM', duration: 30 },
+    { id: 'exercise', icon: 'exercise_activity.svg', label: 'Exercise', startTime: '8:30 AM', duration: 30 },
+    { id: 'breakfast', icon: 'eat_activity.svg', label: 'Breakfast', startTime: '9:00 AM', duration: 30 },
+    { id: 'dress', icon: 'dress-up_activity.svg', label: 'Dress', startTime: '9:30 AM', duration: 15 },
+    { id: 'drive', icon: 'drive_activity.svg', label: 'Drive', startTime: '9:45 AM', duration: 45 },
+    { id: 'work', icon: 'office-work_activity.svg', label: 'Work', startTime: '10:30 AM', duration: 480 },
+    { id: 'shoonya', icon: 'sadhana_activity.svg', label: 'Shoonya', startTime: '6:00 PM', duration: 15 },
+    { id: 'lunch', icon: 'eat_activity.svg', label: 'Lunch', startTime: '1:00 PM', duration: 30 },
+    { id: 'chat', icon: 'chat_activity.svg', label: 'Chat', startTime: '7:00 PM', duration: 30 },
+    { id: 'coffee', icon: 'coffee-break_activity.svg', label: 'Coffee', startTime: '4:00 PM', duration: 15 },
+    { id: 'entertainment', icon: 'entertainment_activity.svg', label: 'Fun', startTime: '8:00 PM', duration: 60 },
+    { id: 'walk', icon: 'walk_activity.svg', label: 'Walk', startTime: '7:30 PM', duration: 30 },
+    { id: 'hobby', icon: 'hobby_activity.svg', label: 'Hobby', startTime: '9:00 PM', duration: 60 },
+    { id: 'sleep', icon: 'sleep_activity.svg', label: 'Sleep', startTime: '10:00 PM', duration: 420 }
 ];
 
 let state = {
@@ -33,8 +33,15 @@ let state = {
     currentActivityStartTime: null,
     dayStartTime: null,
     isDayStarted: false,
-    history: []
+    history: [],
+    yesterday: null, // Stores previous day's data
+    activitySettings: null, // Check loadState for initialization
+    startToEnd: null // { bornOn: '', endAt: '' }
 };
+
+function getActivities() {
+    return state.activitySettings || DEFAULT_ACTIVITIES;
+}
 
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Restore Label if activity is active
     if (state.currentActivityId) {
-        const act = ACTIVITIES.find(a => a.id === state.currentActivityId);
+        const act = getActivities().find(a => a.id === state.currentActivityId);
         if (act) {
             // function is hoisted, so this is safe technically, 
             // but we'll ensure it's defined globally.
@@ -53,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setupNavigation();
+    setupTabs();
     startTimerLoop();
     registerServiceWorker();
 
@@ -68,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Helper Functions ---
 
 // Format timestamp to 12-hour time
-function formatTime(timestamp) {
+function formatClockTime(timestamp) {
     const date = new Date(timestamp);
     const hours = date.getHours();
     const minutes = date.getMinutes();
@@ -92,8 +100,9 @@ function formatDuration(ms) {
 }
 
 // Get activity summary for monitor view
-function getActivitySummary() {
+function getActivitySummary(targetHistory = null) {
     const summary = {};
+    const historyToUse = targetHistory || state.history;
 
     // Initialize all activities
     ACTIVITIES.forEach(act => {
@@ -108,19 +117,21 @@ function getActivitySummary() {
     });
 
     // Process history
-    state.history.forEach(entry => {
-        const activityId = entry.activityId;
-        if (summary[activityId]) {
-            summary[activityId].count++;
-            summary[activityId].totalDuration += entry.duration;
-            if (!summary[activityId].firstOccurrence) {
-                summary[activityId].firstOccurrence = entry.startTime;
+    if (historyToUse) {
+        historyToUse.forEach(entry => {
+            const activityId = entry.activityId;
+            if (summary[activityId]) {
+                summary[activityId].count++;
+                summary[activityId].totalDuration += entry.duration;
+                if (!summary[activityId].firstOccurrence) {
+                    summary[activityId].firstOccurrence = entry.startTime;
+                }
             }
-        }
-    });
+        });
+    }
 
-    // Include current activity if active
-    if (state.currentActivityId && state.currentActivityStartTime) {
+    // Include current activity if active AND we are looking at TODAY (no targetHistory passed)
+    if (!targetHistory && state.currentActivityId && state.currentActivityStartTime) {
         const currentDuration = Date.now() - state.currentActivityStartTime;
         if (summary[state.currentActivityId]) {
             if (summary[state.currentActivityId].count === 0) {
@@ -155,11 +166,23 @@ function loadState() {
         state = JSON.parse(saved);
     }
 
+    // Ensure activitySettings exists
+    if (!state.activitySettings) {
+        state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+    }
+    if (!state.startToEnd) {
+        // Default values as requested
+        state.startToEnd = { bornOn: '31-05-1978', endAt: '60' };
+    }
+
     // Load from Firebase (will override local if exists)
     stateRef.once('value').then((snapshot) => {
         const firebaseState = snapshot.val();
         if (firebaseState) {
             state = firebaseState;
+            if (!state.activitySettings) {
+                state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+            }
             render();
         }
     }).catch((error) => {
@@ -171,6 +194,9 @@ function loadState() {
         const firebaseState = snapshot.val();
         if (firebaseState && firebaseState.lastUpdatedBy !== DEVICE_ID) {
             state = firebaseState;
+            if (!state.activitySettings) {
+                state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+            }
             render();
         }
     });
@@ -193,13 +219,39 @@ function render() {
     // Timer updates happen via setInterval, not here
 }
 
-function renderMonitorView() {
-    const monitorContainer = document.getElementById('monitorView');
+function renderMonitorView(containerId, historySource) {
+    const monitorContainer = document.getElementById(containerId);
     if (!monitorContainer) return;
 
-    const summary = getActivitySummary();
+    // Check if we have data to render
+    if (historySource === undefined && containerId === 'measureYesterday') {
+        // Special case for yesterday if it is null/undefined
+        if (!state.yesterday || !state.yesterday.history || state.yesterday.history.length === 0) {
+            monitorContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No data for yesterday</div>';
+            return;
+        }
+        historySource = state.yesterday.history;
+    }
 
-    // Sort by first occurrence (tracked first, then by time)
+    const summary = getActivitySummary(historySource);
+
+    // Filter out items with no activity if it's yesterday
+    const itemsFunc = (item) => {
+        if (containerId === 'measureYesterday') {
+            return item.count > 0;
+        }
+        return true;
+    };
+
+    // Check if empty after filter
+    const activeItems = summary.filter(itemsFunc);
+
+    if (containerId === 'measureYesterday' && activeItems.length === 0) {
+        monitorContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No recorded activities</div>';
+        return;
+    }
+
+    // Sort: Tracked first
     summary.sort((a, b) => {
         if (a.firstOccurrence && !b.firstOccurrence) return -1;
         if (!a.firstOccurrence && b.firstOccurrence) return 1;
@@ -209,7 +261,7 @@ function renderMonitorView() {
 
     monitorContainer.innerHTML = summary.map(item => {
         const tracked = item.count > 0;
-        const timeStr = tracked ? formatTime(item.firstOccurrence) : '';
+        const timeStr = tracked ? formatClockTime(item.firstOccurrence) : '';
         const countStr = item.count > 1 ? ` (${item.count})` : '';
         const durationStr = tracked ? formatDuration(item.totalDuration) : 'Not tracked';
 
@@ -231,7 +283,7 @@ function renderActivities() {
     const grid = document.getElementById('activityGrid');
     grid.innerHTML = '';
 
-    ACTIVITIES.forEach(act => {
+    getActivities().forEach(act => {
         const btn = document.createElement('div');
         btn.className = `activity-btn ${state.currentActivityId === act.id ? 'active' : ''}`;
 
@@ -251,13 +303,34 @@ function handleActivityClick(activity) {
 
     // RESET ALL TIMERS when Wake Up is pressed (new day starts)
     if (activity.id === 'wakeup') {
-        state = {
-            currentActivityId: null,
-            currentActivityStartTime: null,
-            history: [],
-            isDayStarted: false,
-            dayStartTime: null
-        };
+        // Capture final activity of the day if one is running
+        if (state.currentActivityId && state.currentActivityStartTime) {
+            const duration = now - state.currentActivityStartTime;
+            if (!state.history) state.history = [];
+            state.history.push({
+                activityId: state.currentActivityId,
+                startTime: state.currentActivityStartTime,
+                endTime: now,
+                duration: duration
+            });
+        }
+
+        // ROTATE HISTORY: Move current day to "Yesterday"
+        const previousHistory = state.history || [];
+        // Only rotate if there was actually a day started or some history
+        if (state.isDayStarted || previousHistory.length > 0) {
+            state.yesterday = {
+                dayStartTime: state.dayStartTime,
+                history: [...previousHistory] // Deep copy simple array of objects
+            };
+        }
+
+        // Reset Today
+        state.currentActivityId = null;
+        state.currentActivityStartTime = null;
+        state.history = [];
+        state.isDayStarted = false;
+        state.dayStartTime = null;
 
         // Now start the new day with wake-up activity
         state.dayStartTime = now;
@@ -348,7 +421,7 @@ function hideFocusMode() {
     const activityGrid = document.getElementById('activityGrid');
 
     if (focusView) focusView.style.display = 'none';
-    if (activityGrid) activityGrid.style.display = 'grid'; // Restore grid
+    if (activityGrid) activityGrid.style.display = ''; // Clear inline style to let CSS control visibility
 
     // Restore bottom small timers
     const timersCapsule = document.querySelector('.timers-capsule');
@@ -364,14 +437,14 @@ function updateFocusTimers() {
 
     if (state.currentActivityStartTime) {
         const diff = now - state.currentActivityStartTime;
-        focusTimer.textContent = formatTime(diff);
+        focusTimer.textContent = formatTimer(diff);
     } else {
         focusTimer.textContent = "00:00:00";
     }
 
     if (state.isDayStarted && state.dayStartTime) {
         const dayDiff = now - state.dayStartTime;
-        focusDayTimer.textContent = formatTime(dayDiff);
+        focusDayTimer.textContent = formatTimer(dayDiff);
     } else {
         focusDayTimer.textContent = "00:00:00";
     }
@@ -391,12 +464,12 @@ function timerTick() {
 
     if (state.currentActivityStartTime) {
         const diff = now - state.currentActivityStartTime;
-        document.getElementById('currentActivityTimer').textContent = formatTime(diff);
+        document.getElementById('currentActivityTimer').textContent = formatTimer(diff);
     }
 
     if (state.isDayStarted && state.dayStartTime) {
         const dayDiff = now - state.dayStartTime;
-        document.getElementById('dayTimer').textContent = formatTime(dayDiff);
+        document.getElementById('dayTimer').textContent = formatTimer(dayDiff);
     } else {
         document.getElementById('dayTimer').textContent = "00:00:00";
     }
@@ -405,10 +478,11 @@ function timerTick() {
     updateTimeline();
 
     // Update Focus View timers if visible
-    const focusView = document.getElementById('focusView');
     if (focusView && focusView.style.display !== 'none') {
         updateFocusTimers();
     }
+
+    updateLifeProgress();
 
     requestAnimationFrame(timerTick);
 }
@@ -436,7 +510,7 @@ function updateTimeline() {
     }
 }
 
-function formatTime(ms) {
+function formatTimer(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -445,14 +519,8 @@ function formatTime(ms) {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
-// Toggle Monitor View
-function toggleMonitorView() {
-    const isMonitorActive = document.body.classList.toggle('monitor-active');
-
-    if (isMonitorActive) {
-        renderMonitorView();
-    }
-}
+// Toggle Monitor View - REMOVED
+// function toggleMonitorView() {}
 
 function setupNavigation() {
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -476,35 +544,177 @@ function switchMode(mode) {
         }
     });
 
-    // 2. Handle Panels & Content
+    // 2. Handle Panels
     const mainPanel = document.getElementById('mainPanel');
+    const measurePanel = document.getElementById('measurePanel');
     const settingsPanel = document.getElementById('settingsPanel');
-    const body = document.body;
+
+    // Side Panel Visibility
+    const sidePanel = document.querySelector('.side-panel');
+    const timers = document.querySelector('.timers-capsule');
+
+    // Reset All
+    mainPanel.style.display = 'none';
+    measurePanel.style.display = 'none';
+    settingsPanel.style.display = 'none';
 
     switch (mode) {
         case 'run':
             mainPanel.style.display = 'flex';
-            settingsPanel.style.display = 'none';
-            body.classList.remove('monitor-active');
-            toggleSettingsMode(false);
+            if (sidePanel) sidePanel.style.display = 'flex';
+            if (timers) timers.style.visibility = 'visible';
             break;
 
         case 'measure':
-            mainPanel.style.display = 'flex';
-            settingsPanel.style.display = 'none';
-            body.classList.add('monitor-active');
-            toggleSettingsMode(false);
-            renderMonitorView();
+            measurePanel.style.display = 'flex';
+            if (sidePanel) sidePanel.style.display = 'flex';
+            if (timers) timers.style.visibility = 'visible';
+            renderMonitorView('measureToday');
+            renderMonitorView('measureYesterday');
             break;
 
         case 'settings':
-            mainPanel.style.display = 'none';
             settingsPanel.style.display = 'flex';
-            body.classList.remove('monitor-active'); // Ensure monitor doesn't bleed through
-            toggleSettingsMode(true);
-            renderSettings();
+            if (sidePanel) sidePanel.style.display = 'none';
+            if (timers) timers.style.visibility = 'hidden';
+            if (timers) timers.style.visibility = 'hidden';
+            renderAllSettings();
             break;
     }
+}
+
+function renderAllSettings() {
+    renderGeneralSettings();
+    renderActivitySettings();
+}
+
+function renderActivitySettings() {
+    const container = document.getElementById('settingsActivity');
+    if (!container) return;
+
+    // Clear container to avoid duplicates if re-rendered
+    container.innerHTML = '';
+
+    getActivities().forEach(act => {
+        // Safe accessors
+        const labelSafe = act.label || '';
+        const startSafe = act.startTime || '';
+        const durationSafe = act.duration || '';
+
+        const row = document.createElement('div');
+        row.className = 'settings-row';
+        row.innerHTML = `
+            <div class="settings-icon">
+                <img src="./icons/${act.icon}" alt="${labelSafe}">
+            </div>
+            
+            <input type="text" 
+                   class="settings-input settings-name" 
+                   value="${labelSafe}" 
+                   onchange="updateActivitySetting('${act.id}', 'label', this.value)"
+                   placeholder="Name">
+                   
+            <input type="text" 
+                   class="settings-input settings-time" 
+                   value="${startSafe}" 
+                   onchange="updateActivitySetting('${act.id}', 'startTime', this.value)"
+                   placeholder="5:00 AM">
+                   
+            <input type="number" 
+                   class="settings-input settings-duration" 
+                   value="${durationSafe}" 
+                   onchange="updateActivitySetting('${act.id}', 'duration', this.value)"
+                   placeholder="Min">
+        `;
+        container.appendChild(row);
+    });
+
+    // Add a "Restore Defaults" button at the bottom
+    const restoreDiv = document.createElement('div');
+    restoreDiv.style.padding = '20px';
+    restoreDiv.style.textAlign = 'center';
+    restoreDiv.innerHTML = `<button style="color: #ff3b30; background: none; border: none; font-size: 14px; cursor: pointer;">Restore Defaults</button>`;
+    restoreDiv.querySelector('button').onclick = () => {
+        if (confirm('Reset all activity names and times to default?')) {
+            state.activitySettings = null; // Will trigger reload from default
+            saveState();
+            location.reload();
+        }
+    };
+    container.appendChild(restoreDiv);
+
+    // Start-to-End Section
+    const steSection = document.createElement('div');
+    steSection.className = 'ste-section';
+    steSection.innerHTML = `
+        <div class="ste-title">Start to End:</div>
+        <div class="ste-row">
+            <span class="ste-label">Born on:</span>
+            <input type="text" 
+                   value="${(state.startToEnd && state.startToEnd.bornOn) || ''}" 
+                   onchange="updateStartToEnd('bornOn', this.value)"
+                   class="ste-input"
+                   placeholder="DD-MM-YYYY">
+        </div>
+        <div class="ste-row">
+            <span class="ste-label">End at</span>
+            <input type="number" 
+                   value="${(state.startToEnd && state.startToEnd.endAt) || ''}" 
+                   onchange="updateStartToEnd('endAt', this.value)"
+                   class="ste-input-small"
+                   placeholder="60">
+            <span style="margin-left: 5px;">Years</span>
+        </div>
+    `;
+    container.appendChild(steSection);
+}
+
+window.updateStartToEnd = function (field, value) {
+    if (!state.startToEnd) state.startToEnd = { bornOn: '', endAt: '' };
+    state.startToEnd[field] = value;
+    saveState();
+};
+
+// Exposed globally for onchange events
+window.updateActivitySetting = function (id, field, value) {
+    if (!state.activitySettings) {
+        state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+    }
+
+    const act = state.activitySettings.find(a => a.id === id);
+    if (act) {
+        if (field === 'duration') {
+            act[field] = parseInt(value) || 0;
+        } else {
+            act[field] = value;
+        }
+        saveState();
+        // Re-render main grid to reflect name changes immediately
+        renderActivities();
+    }
+};
+
+function setupTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.onclick = () => {
+            const targetId = tab.dataset.target;
+            const container = tab.closest('.main-panel');
+
+            // Update Buttons
+            container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Update Content
+            container.querySelectorAll('.tab-content').forEach(content => {
+                if (content.id === targetId) {
+                    content.style.display = 'flex';
+                } else {
+                    content.style.display = 'none';
+                }
+            });
+        };
+    });
 }
 
 // --- Versioning & Update Logic ---
@@ -522,7 +732,7 @@ async function getServerVersion() {
     }
 }
 
-async function renderSettings() {
+async function renderGeneralSettings() {
     const serverVer = await getServerVersion();
     const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
 
@@ -585,24 +795,7 @@ function checkUpdateSuccess() {
 }
 
 
-function toggleSettingsMode(isSettings) {
-    const side = document.querySelector('.side-panel');
-    const timers = document.querySelector('.timers-capsule');
-
-    if (isSettings) {
-        if (side) {
-            side.style.display = 'none';
-            side.style.visibility = 'hidden';
-        }
-        if (timers) timers.style.visibility = 'hidden';
-    } else {
-        if (side) {
-            side.style.display = 'flex';
-            side.style.visibility = 'visible';
-        }
-        if (timers) timers.style.visibility = 'visible';
-    }
-}
+// toggleSettingsMode removed - handled directly in switchMode
 
 
 function registerServiceWorker() {
@@ -642,5 +835,46 @@ function registerServiceWorker() {
             window.location.reload();
             refreshing = true;
         });
+    }
+}
+
+function updateLifeProgress() {
+    const bar = document.getElementById('lifeProgress');
+    const label = document.getElementById('lifeProgressText');
+
+    if (!state.startToEnd || !state.startToEnd.bornOn || !state.startToEnd.endAt) {
+        if (label) label.textContent = '';
+        return;
+    }
+
+    try {
+        const parts = state.startToEnd.bornOn.split('-');
+        if (parts.length !== 3) return;
+
+        const born = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        const endYears = parseInt(state.startToEnd.endAt);
+        const end = new Date(born);
+        end.setFullYear(born.getFullYear() + endYears);
+
+        const now = new Date();
+        const totalMs = end.getTime() - born.getTime();
+        const elapsedMs = now.getTime() - born.getTime();
+
+        let pct = (elapsedMs / totalMs) * 100;
+        if (pct < 0) pct = 0;
+        if (pct > 100) pct = 100;
+
+        if (bar) {
+            bar.style.height = `${pct}%`;
+        }
+
+        const remainingMs = end.getTime() - now.getTime();
+        const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+
+        if (label) {
+            label.textContent = `${remainingDays} days to live`;
+        }
+    } catch (e) {
+        console.warn('Life calculation error', e);
     }
 }
