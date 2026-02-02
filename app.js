@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V15-01.02.2026-09:44 PM";
+const ClientVersion = "V22-02.02.2026-08:15 PM";
 
 // Correct SVG List
 const ACTIVITIES = [
@@ -55,6 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     startTimerLoop();
     registerServiceWorker();
+
+    const closeBtn = document.getElementById('closeFocusBtn');
+    if (closeBtn) {
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            hideFocusMode();
+        };
+    }
 });
 
 // --- Helper Functions ---
@@ -260,6 +268,9 @@ function handleActivityClick(activity) {
         updateMetaDisplay(activity);
         renderActivities();
         saveState();
+
+        // Show Focus Mode for Wake Up too
+        showFocusMode(activity);
         return;
     }
 
@@ -291,6 +302,79 @@ function handleActivityClick(activity) {
     updateMetaDisplay(activity); // Update Label
     renderActivities();
     saveState();
+
+    // Show Focus Mode on new activity click
+    showFocusMode(activity);
+}
+
+// --- Focus Mode Logic ---
+function showFocusMode(activity) {
+    const focusView = document.getElementById('focusView');
+    const activityGrid = document.getElementById('activityGrid');
+
+    if (!focusView) return;
+
+    // Populate data
+    document.getElementById('focusIcon').src = `./icons/${activity.icon}`;
+    document.getElementById('focusLabel').textContent = activity.label;
+
+    // Initial Timer Render
+    updateFocusTimers();
+
+    // Show View
+    focusView.style.display = 'flex';
+    if (activityGrid) activityGrid.style.display = 'none';
+
+    // Hide the bottom small timers (capsule)
+    const timersCapsule = document.querySelector('.timers-capsule');
+    if (timersCapsule) timersCapsule.style.display = 'none';
+
+    // Add dismiss listeners
+    focusView.onclick = (e) => {
+        // If clicking the container background (not the inner content blocks ideally, but user said "anywhere")
+        // User said "click anywhere in the screen". 
+        // We'll just close it.
+        hideFocusMode();
+    };
+
+    // Prevent immediate close if bubble propagation issues (optional, but "anywhere" is broad)
+    // Actually, "anywhere" includes the buttons themselves usually? 
+    // Let's assume clicking ANYWHERE dismisses it. 
+    // BUT, we have a specific Close button too. 
+}
+
+function hideFocusMode() {
+    const focusView = document.getElementById('focusView');
+    const activityGrid = document.getElementById('activityGrid');
+
+    if (focusView) focusView.style.display = 'none';
+    if (activityGrid) activityGrid.style.display = 'grid'; // Restore grid
+
+    // Restore bottom small timers
+    const timersCapsule = document.querySelector('.timers-capsule');
+    if (timersCapsule) timersCapsule.style.display = 'flex';
+}
+
+function updateFocusTimers() {
+    const focusTimer = document.getElementById('focusTimer');
+    const focusDayTimer = document.getElementById('focusDayTimer');
+    if (!focusTimer || !focusDayTimer) return;
+
+    const now = Date.now();
+
+    if (state.currentActivityStartTime) {
+        const diff = now - state.currentActivityStartTime;
+        focusTimer.textContent = formatTime(diff);
+    } else {
+        focusTimer.textContent = "00:00:00";
+    }
+
+    if (state.isDayStarted && state.dayStartTime) {
+        const dayDiff = now - state.dayStartTime;
+        focusDayTimer.textContent = formatTime(dayDiff);
+    } else {
+        focusDayTimer.textContent = "00:00:00";
+    }
 }
 
 function updateMetaDisplay(activity) {
@@ -319,6 +403,12 @@ function timerTick() {
 
     // Always update timeline (Absolute Time of Day)
     updateTimeline();
+
+    // Update Focus View timers if visible
+    const focusView = document.getElementById('focusView');
+    if (focusView && focusView.style.display !== 'none') {
+        updateFocusTimers();
+    }
 
     requestAnimationFrame(timerTick);
 }

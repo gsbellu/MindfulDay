@@ -37,6 +37,29 @@
 
             <!-- Monitor View -->
             <div class="monitor-view" id="monitorView"></div>
+
+            <!-- Focus View (New) -->
+            <div class="focus-view" id="focusView" style="display: none;">
+                <button class="close-btn" id="closeFocusBtn">&times;</button>
+                <div class="focus-content">
+                    <!-- Icon -->
+                    <div class="focus-icon-wrapper">
+                        <img id="focusIcon" src="" alt="Activity Icon">
+                    </div>
+
+                    <!-- Current Timer -->
+                    <div class="focus-timer-block green-block">
+                        <span class="focus-label" id="focusLabel">ACTIVITY</span>
+                        <span class="focus-timer" id="focusTimer">00:00:00</span>
+                    </div>
+
+                    <!-- Day Timer -->
+                    <div class="focus-timer-block orange-block">
+                        <span class="focus-label">ALL DAY</span>
+                        <span class="focus-timer" id="focusDayTimer">00:00:00</span>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Settings Panel (Hidden by default) -->

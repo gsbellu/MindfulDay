@@ -188,6 +188,101 @@ body.monitor-active .monitor-view {
     opacity: 1;
 }
 
+/* --- Focus View --- */
+.focus-view {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    /* Above activity grid */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border: 1px solid #e5e5ea;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #ccc;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.focus-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    width: 100%;
+}
+
+.focus-icon-wrapper img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+
+.focus-timer-block {
+    width: 100%;
+    max-width: 320px;
+    padding: 20px;
+    border-radius: 20px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.focus-timer-block.green-block {
+    background: #468e40;
+}
+
+.focus-timer-block.orange-block {
+    background: #f07c10;
+}
+
+.focus-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.focus-timer {
+    display: block;
+    font-size: 48px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Reduce size slightly for the second timer as requested */
+.focus-timer-block.orange-block {
+    max-width: 180px;
+    /* Reduced from 320px (~55%) */
+    padding: 10px;
+    /* Reduced padding */
+    margin-top: 10px;
+    /* Add some spacing */
+}
+
+.focus-timer-block.orange-block .focus-timer {
+    font-size: 32px;
+    /* Compromise size to fit in smaller box */
+}
+
 /* --- Side Panel --- */
 .side-panel {
     /*border: 1px solid green;*/
