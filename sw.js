@@ -1,10 +1,38 @@
-const CACHE_NAME = 'mindfulday-v3-layout-fix';
+const CACHE_NAME = 'mindfulday-v4-offline-ios-fix';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
-    './manifest.json'
+    './manifest.json',
+    './firebase-config.js',
+    './icons/ayurveda_activity.svg',
+    './icons/baby.svg',
+    './icons/bath_activity.svg',
+    './icons/chat_activity.svg',
+    './icons/coffee-break_activity.svg',
+    './icons/dress-up_activity.svg',
+    './icons/drive_activity.svg',
+    './icons/eat_activity.svg',
+    './icons/entertainment_activity.svg',
+    './icons/evening_time.svg',
+    './icons/exercise_activity.svg',
+    './icons/family-time_activity.svg',
+    './icons/hobby_activity.svg',
+    './icons/measure_mode.svg',
+    './icons/meeting.svg',
+    './icons/mid-night_time.svg',
+    './icons/noon_time.svg',
+    './icons/office-work_activity.svg',
+    './icons/old.svg',
+    './icons/run_mode.svg',
+    './icons/sadhana_activity.svg',
+    './icons/settings_mode.svg',
+    './icons/sleep_activity.svg',
+    './icons/sunrise_time.svg',
+    './icons/sunset_time.svg',
+    './icons/wake-up_activity.svg',
+    './icons/walk_activity.svg'
 ];
 
 self.addEventListener('install', (e) => {
@@ -37,13 +65,14 @@ self.addEventListener('fetch', (e) => {
     // We want to ensure version.json is ALWAYS network first
     if (e.request.url.includes('version.json') || e.request.url.includes('app.js')) {
         e.respondWith(
-            fetch(e.request).catch(() => caches.match(e.request))
+            fetch(e.request).catch(() => caches.match(e.request, { ignoreSearch: true }))
         );
         return;
     }
 
     e.respondWith(
-        caches.match(e.request).then((response) => response || fetch(e.request))
+        // ignoreSearch: true ensures that style.css?v=2.1 matches style.css in cache
+        caches.match(e.request, { ignoreSearch: true }).then((response) => response || fetch(e.request))
     );
 });
 
