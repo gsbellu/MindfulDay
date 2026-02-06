@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V25-06.02.2026-03:54 PM";
+const ClientVersion = "V26-06.02.2026-04:19 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
@@ -478,6 +478,7 @@ function timerTick() {
     updateTimeline();
 
     // Update Focus View timers if visible
+    const focusView = document.getElementById('focusView');
     if (focusView && focusView.style.display !== 'none') {
         updateFocusTimers();
     }
