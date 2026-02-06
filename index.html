@@ -168,6 +168,46 @@
         </section>
     </div>
 
+    <!-- Slide-to-Confirm Modal -->
+    <div class="confirm-modal" id="confirmModal" style="display: none;">
+        <div class="confirm-card">
+            <button class="close-btn" id="closeConfirmBtn">&times;</button>
+
+            <!-- Icon Transition (Current -> New) -->
+            <div class="confirm-icon-wrapper">
+                <img id="confirmCurrentIcon" src="icons/run_mode.svg" alt="Current" style="opacity: 0.5;">
+                <div class="confirm-arrow">
+                    <i class="ph ph-arrow-right" style="font-size: 32px; color: #ccc;"></i>
+                </div>
+                <img id="confirmNewIcon" src="" alt="New Activity">
+            </div>
+
+            <div class="confirm-title">Start a new timer?</div>
+
+            <!-- Slider Component -->
+            <div class="slider-container" id="sliderContainer">
+                <div class="slider-track">
+                    <div class="slider-text">Slide to confirm</div>
+                </div>
+                <div class="slider-handle" id="sliderHandle">
+                    <img src="icons/run_mode.svg" alt=">">
+                </div>
+            </div>
+
+            <!-- Current Timer (Green) -->
+            <div class="focus-timer-block green-block" id="confirmCurrentBlock">
+                <span class="focus-label" id="confirmCurrentLabel">CURRENT</span>
+                <span class="focus-timer" id="confirmCurrentTimer">00:00:00</span>
+            </div>
+
+            <!-- Day Timer (Orange) -->
+            <div class="focus-timer-block orange-block" id="confirmDayBlock">
+                <span class="focus-label">ALL DAY</span>
+                <span class="focus-timer" id="confirmDayTimer">00:00:00</span>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js?v=force_1"></script>
 </body>
 

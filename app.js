@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V26-06.02.2026-04:19 PM";
+const ClientVersion = "V29-06.02.2026-04:57 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupNavigation();
     setupTabs();
+    setupConfirmModal(); // Initialize Slider Logic
     startTimerLoop();
     registerServiceWorker();
 
@@ -299,6 +300,10 @@ function renderActivities() {
 }
 
 function handleActivityClick(activity) {
+    showConfirmModal(activity);
+}
+
+function confirmStart(activity) {
     const now = Date.now();
 
     // RESET ALL TIMERS when Wake Up is pressed (new day starts)
@@ -482,6 +487,9 @@ function timerTick() {
     if (focusView && focusView.style.display !== 'none') {
         updateFocusTimers();
     }
+
+    // Update Confirm Modal timers
+    updateConfirmTimers();
 
     updateLifeProgress();
 
@@ -877,5 +885,192 @@ function updateLifeProgress() {
         }
     } catch (e) {
         console.warn('Life calculation error', e);
+    }
+}
+
+// --- Slide-to-Confirm Logic ---
+
+let pendingActivity = null;
+let isDraggingSlider = false;
+let sliderStartX = 0;
+let sliderWidth = 0;
+let handleWidth = 0;
+let maxDrag = 0;
+
+function setupConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    const closeBtn = document.getElementById('closeConfirmBtn');
+    const handle = document.getElementById('sliderHandle');
+    const container = document.getElementById('sliderContainer');
+
+    if (closeBtn) {
+        closeBtn.onclick = hideConfirmModal;
+    }
+
+    // Slider Events
+    if (handle) {
+        handle.addEventListener('mousedown', startDrag);
+        handle.addEventListener('touchstart', startDrag, { passive: false });
+
+        window.addEventListener('mousemove', onDrag);
+        window.addEventListener('touchmove', onDrag, { passive: false });
+
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+    }
+}
+
+function showConfirmModal(activity) {
+    pendingActivity = activity;
+    const modal = document.getElementById('confirmModal');
+
+    // reset slider
+    const handle = document.getElementById('sliderHandle');
+    const text = document.querySelector('.slider-text');
+    if (handle) {
+        handle.style.transition = 'none';
+        handle.style.transform = 'translateX(0px)';
+    }
+    if (text) text.style.opacity = '1';
+
+    // Populate Data
+    document.getElementById('confirmNewIcon').src = `./icons/${activity.icon}`;
+
+    // Current Icon
+    const curIconImg = document.getElementById('confirmCurrentIcon');
+    if (state.currentActivityId) {
+        const currentAct = getActivities().find(a => a.id === state.currentActivityId);
+        if (currentAct) {
+            curIconImg.src = `./icons/${currentAct.icon}`;
+            curIconImg.style.opacity = '1';
+        } else {
+            // Fallback
+            curIconImg.src = `./icons/run_mode.svg`;
+            curIconImg.style.opacity = '0.3';
+        }
+    } else {
+        // No current activity (e.g. start of day)
+        // Show maybe "Sleep" or just a placeholder? 
+        // Let's use "Sleep" if it was yesterday? Or just a generic circle?
+        // Let's use a generic opacity
+        curIconImg.src = `./icons/run_mode.svg`;
+        curIconImg.style.opacity = '0.3';
+    }
+
+    // Current Timer Data
+    const currentLabel = document.getElementById('confirmCurrentLabel');
+    const currentTimer = document.getElementById('confirmCurrentTimer');
+    const currentBlock = document.getElementById('confirmCurrentBlock');
+
+    if (state.currentActivityId) {
+        const currentAct = getActivities().find(a => a.id === state.currentActivityId);
+        currentLabel.textContent = currentAct ? currentAct.label : "UNKNOWN";
+        currentBlock.style.background = "#468e40";
+    } else {
+        currentLabel.textContent = "READY";
+        currentTimer.textContent = "00:00:00";
+        currentBlock.style.background = "#ccc";
+    }
+
+    updateConfirmTimers();
+    modal.style.display = 'flex';
+}
+
+function hideConfirmModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+    pendingActivity = null;
+}
+
+function startDrag(e) {
+    isDraggingSlider = true;
+    const handle = document.getElementById('sliderHandle');
+    const container = document.getElementById('sliderContainer');
+
+    handle.style.transition = 'none'; // distinct 1:1 movement
+
+    sliderStartX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    sliderWidth = container.offsetWidth;
+    handleWidth = handle.offsetWidth;
+    maxDrag = sliderWidth - handleWidth - 8; // 8px total padding (4px each side)
+}
+
+function onDrag(e) {
+    if (!isDraggingSlider) return;
+
+    e.preventDefault(); // Prevent scrolling on touch
+
+    const currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    let diff = currentX - sliderStartX;
+
+    if (diff < 0) diff = 0;
+    if (diff > maxDrag) diff = maxDrag;
+
+    const handle = document.getElementById('sliderHandle');
+    handle.style.transform = `translateX(${diff}px)`;
+
+    // Opacity fade for text
+    const text = document.querySelector('.slider-text');
+    const opacity = 1 - (diff / maxDrag);
+    if (text) text.style.opacity = opacity;
+}
+
+function endDrag(e) {
+    if (!isDraggingSlider) return;
+    isDraggingSlider = false;
+
+    const handle = document.getElementById('sliderHandle');
+    const currentTransform = handle.style.transform;
+    const px = parseFloat(currentTransform.replace('translateX(', '').replace('px)', '')) || 0;
+
+    // Check for "Click" (negligible movement)
+    const currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    // For mouseup, e.pageX is valid. For touchend, it's in e.changedTouches
+    const endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].pageX;
+    const movedDist = Math.abs(endX - sliderStartX);
+
+    const isClick = movedDist < 5; // moved less than 5 pixels
+
+    // If dragged more than 90% OR Clicked
+    if (px > maxDrag * 0.9 || isClick) {
+        // Confirm!
+        handle.style.transition = 'transform 0.2s ease'; // Fast slide
+        handle.style.transform = `translateX(${maxDrag}px)`;
+
+        // Hide text
+        const text = document.querySelector('.slider-text');
+        if (text) text.style.opacity = '0';
+
+        setTimeout(() => {
+            if (pendingActivity) {
+                confirmStart(pendingActivity);
+            }
+            hideConfirmModal();
+        }, 250);
+    } else {
+        // Snap Back
+        handle.style.transition = 'transform 0.3s ease';
+        handle.style.transform = 'translateX(0px)';
+        const text = document.querySelector('.slider-text');
+        if (text) text.style.opacity = '1';
+    }
+}
+
+function updateConfirmTimers() {
+    if (document.getElementById('confirmModal').style.display === 'none') return;
+
+    const now = Date.now();
+
+    // Current Activity Timer
+    if (state.currentActivityStartTime) {
+        const diff = now - state.currentActivityStartTime;
+        document.getElementById('confirmCurrentTimer').textContent = formatTimer(diff);
+    }
+
+    // Day Timer
+    if (state.isDayStarted && state.dayStartTime) {
+        const dayDiff = now - state.dayStartTime;
+        document.getElementById('confirmDayTimer').textContent = formatTimer(dayDiff);
+    } else {
+        document.getElementById('confirmDayTimer').textContent = "00:00:00";
     }
 }
