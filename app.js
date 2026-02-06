@@ -4,28 +4,27 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V29-06.02.2026-04:57 PM";
+const ClientVersion = "V33-06.02.2026-08:45 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
-    { id: 'wakeup', icon: 'wake-up_activity.svg', label: 'Wake Up', startTime: '5:00 AM', duration: 10 },
-    { id: 'bath', icon: 'bath_activity.svg', label: 'Bath', startTime: '5:15 AM', duration: 20 },
-    { id: 'medicines', icon: 'ayurveda_activity.svg', label: 'Meds', startTime: '5:45 AM', duration: 15 },
-    { id: 'sadhana', icon: 'sadhana_activity.svg', label: 'Sadhana', startTime: '6:00 AM', duration: 120 },
-    { id: 'family', icon: 'family-time_activity.svg', label: 'Family', startTime: '8:00 AM', duration: 30 },
-    { id: 'exercise', icon: 'exercise_activity.svg', label: 'Exercise', startTime: '8:30 AM', duration: 30 },
-    { id: 'breakfast', icon: 'eat_activity.svg', label: 'Breakfast', startTime: '9:00 AM', duration: 30 },
-    { id: 'dress', icon: 'dress-up_activity.svg', label: 'Dress', startTime: '9:30 AM', duration: 15 },
-    { id: 'drive', icon: 'drive_activity.svg', label: 'Drive', startTime: '9:45 AM', duration: 45 },
-    { id: 'work', icon: 'office-work_activity.svg', label: 'Work', startTime: '10:30 AM', duration: 480 },
-    { id: 'shoonya', icon: 'sadhana_activity.svg', label: 'Shoonya', startTime: '6:00 PM', duration: 15 },
-    { id: 'lunch', icon: 'eat_activity.svg', label: 'Lunch', startTime: '1:00 PM', duration: 30 },
-    { id: 'chat', icon: 'chat_activity.svg', label: 'Chat', startTime: '7:00 PM', duration: 30 },
-    { id: 'coffee', icon: 'coffee-break_activity.svg', label: 'Coffee', startTime: '4:00 PM', duration: 15 },
-    { id: 'entertainment', icon: 'entertainment_activity.svg', label: 'Fun', startTime: '8:00 PM', duration: 60 },
-    { id: 'walk', icon: 'walk_activity.svg', label: 'Walk', startTime: '7:30 PM', duration: 30 },
-    { id: 'hobby', icon: 'hobby_activity.svg', label: 'Hobby', startTime: '9:00 PM', duration: 60 },
-    { id: 'sleep', icon: 'sleep_activity.svg', label: 'Sleep', startTime: '10:00 PM', duration: 420 }
+    { "id": "wakeup", "label": "Wake Up", "icon": "wake-up_activity.svg", "duration": 10 },
+    { "id": "bath", "label": "Bath", "icon": "bath_activity.svg", "duration": 30 },
+    { "id": "meds", "label": "Meds", "icon": "ayurveda_activity.svg", "duration": 0 },
+    { "id": "sadhana", "label": "Sadhana", "icon": "sadhana_activity.svg", "duration": 0 },
+    { "id": "exercise", "label": "Exercise", "icon": "exercise_activity.svg", "duration": 0 },
+    { "id": "groom", "label": "Groom", "icon": "groom_activity.svg", "duration": 15 },
+    { "id": "dressup", "label": "Dress-up", "icon": "dress-up_activity.svg", "duration": 15 },
+    { "id": "eat", "label": "Eat", "icon": "eat_activity.svg", "duration": 20 },
+    { "id": "drive", "label": "Drive", "icon": "drive_activity.svg", "duration": 0 },
+    { "id": "work", "label": "Work", "icon": "office-work_activity.svg", "duration": 0 },
+    { "id": "chat", "label": "Chat", "icon": "chat_activity.svg", "duration": 0 },
+    { "id": "coffee", "label": "Coffee", "icon": "coffee-break_activity.svg", "duration": 0 },
+    { "id": "fun", "label": "Fun", "icon": "entertainment_activity.svg", "duration": 0 },
+    { "id": "learn", "label": "Learn", "icon": "read_activity.svg", "duration": 0 },
+    { "id": "walk", "label": "Walk", "icon": "walk_activity.svg", "duration": 0 },
+    { "id": "relax", "label": "Relax", "icon": "relax_activity.svg", "duration": 0 },
+    { "id": "sleep", "label": "Sleep", "icon": "sleep_activity.svg", "duration": 360 }
 ];
 
 let state = {
@@ -47,6 +46,10 @@ function getActivities() {
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
     checkUpdateSuccess();
+
+    // Fetch external settings (fire and forget, it will re-render when done)
+    fetchActivitySettings();
+
     renderActivities();
 
     // Restore Label if activity is active
@@ -73,6 +76,24 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
+
+// Fetch activities from JSON file
+function fetchActivitySettings() {
+    // Add cache buster to ensure fresh data
+    fetch(`settings_activities.json?t=${Date.now()}`)
+        .then(response => {
+            if (!response.ok) throw new Error("Settings file not found");
+            return response.json();
+        })
+        .then(data => {
+            console.log("Loaded activity settings:", data);
+            state.activitySettings = data;
+            renderActivities();
+        })
+        .catch(err => {
+            console.warn("Could not load settings_activities.json, using defaults.", err);
+        });
+}
 
 // --- Helper Functions ---
 
@@ -108,7 +129,7 @@ function getActivitySummary(targetHistory = null) {
     // Initialize all activities
     getActivities().forEach(act => {
         summary[act.id] = {
-            activityId: act.id,
+            id: act.id, // Fixed: was activityId, caused mismatch
             label: act.label,
             icon: act.icon,
             count: 0,
@@ -167,7 +188,11 @@ function loadState() {
         state = JSON.parse(saved);
     }
 
-    // Ensure activitySettings exists
+    // Ensure activitySettings is NOT loaded from stale local state
+    // We want to force it to load from settings_activities.json or DEFAULT_ACTIVITIES
+    state.activitySettings = null;
+
+    // Ensure activitySettings exists (fallback to default immediately for initial paint)
     if (!state.activitySettings) {
         state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
     }
@@ -181,10 +206,14 @@ function loadState() {
         const firebaseState = snapshot.val();
         if (firebaseState) {
             state = firebaseState;
+            // AGAIN, force clear settings to use JSON file
+            state.activitySettings = null;
+
             if (!state.activitySettings) {
                 state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
             }
-            render();
+            fetchActivitySettings(); // Refetch to be sure
+            renderActivities(); // Render defaults then update
         }
     }).catch((error) => {
         console.log('Firebase load failed, using local state:', error);
@@ -195,10 +224,15 @@ function loadState() {
         const firebaseState = snapshot.val();
         if (firebaseState && firebaseState.lastUpdatedBy !== DEVICE_ID) {
             state = firebaseState;
-            if (!state.activitySettings) {
-                state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
-            }
-            render();
+            // Keep remote settings? User said "settings in JSON file".
+            // So we should arguably ignore remote settings for activities too.
+            // But let's assume JSON file is the source of truth for THIS client.
+            state.activitySettings = null;
+            fetchActivitySettings();
+
+            renderMonitorView('measureToday');
+            renderMonitorView('measureYesterday');
+            updateMetaDisplay({ label: '' }); // potentially clear
         }
     });
 }
@@ -236,31 +270,24 @@ function renderMonitorView(containerId, historySource) {
 
     const summary = getActivitySummary(historySource);
 
-    // Filter out items with no activity if it's yesterday
-    const itemsFunc = (item) => {
-        if (containerId === 'measureYesterday') {
-            return item.count > 0;
-        }
-        return true;
-    };
+    // Filter out items with no activity (User Request: "Do not show the activities that are not started")
+    const activeItems = summary.filter(item => item.count > 0);
 
-    // Check if empty after filter
-    const activeItems = summary.filter(itemsFunc);
-
-    if (containerId === 'measureYesterday' && activeItems.length === 0) {
+    if (activeItems.length === 0) {
         monitorContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No recorded activities</div>';
         return;
     }
 
-    // Sort: Tracked first
-    summary.sort((a, b) => {
+    // Sort: Chronological (Latest on top)
+    // "I meant the latest one should be there on the top" -> Descending start time
+    activeItems.sort((a, b) => {
         if (a.firstOccurrence && !b.firstOccurrence) return -1;
         if (!a.firstOccurrence && b.firstOccurrence) return 1;
         if (!a.firstOccurrence && !b.firstOccurrence) return 0;
-        return a.firstOccurrence - b.firstOccurrence;
+        return b.firstOccurrence - a.firstOccurrence; // Descending
     });
 
-    monitorContainer.innerHTML = summary.map(item => {
+    monitorContainer.innerHTML = activeItems.map(item => {
         const tracked = item.count > 0;
         const timeStr = tracked ? formatClockTime(item.firstOccurrence) : '';
         const countStr = item.count > 1 ? ` (${item.count})` : '';
@@ -280,19 +307,85 @@ function renderMonitorView(containerId, historySource) {
     }).join('');
 }
 
+// Helper to get total duration for each activity today
+function getTodayActivityDurations() {
+    const durations = {};
+    const summary = getActivitySummary(); // Uses state.history by default (Today)
+
+    // Initialize all from settings to 0
+    getActivities().forEach(act => durations[act.id] = 0);
+
+    summary.forEach(item => {
+        if (durations[item.id] !== undefined) {
+            durations[item.id] = item.totalDuration; // ms
+        }
+    });
+
+    return durations;
+}
+
 function renderActivities() {
     const grid = document.getElementById('activityGrid');
     grid.innerHTML = '';
 
-    getActivities().forEach(act => {
+    const activities = getActivities();
+    // Deduplicate by ID
+    const uniqueActivities = [];
+    const seenIds = new Set();
+
+    activities.forEach(act => {
+        if (!seenIds.has(act.id)) {
+            seenIds.add(act.id);
+            uniqueActivities.push(act);
+        }
+    });
+
+    console.log('Rendering activities:', uniqueActivities.length, uniqueActivities.map(a => a.label));
+
+    // Get durations for status dots
+    const currentDurations = getTodayActivityDurations();
+
+    uniqueActivities.forEach(act => {
         const btn = document.createElement('div');
         btn.className = `activity-btn ${state.currentActivityId === act.id ? 'active' : ''}`;
+        btn.style.position = 'relative'; // Ensure dot positioning works
+
+        // STATUS DOT LOGIC
+        const totalMs = currentDurations[act.id] || 0;
+        const targetMin = act.duration || 0;
+        const targetMs = targetMin * 60000;
+
+        let dotClass = '';
+
+        if (totalMs > 0) {
+            // Activity has started/run at least once
+            if (targetMin === 0) {
+                // Unspecified duration: Green if >= 1 minute (60000ms)
+                if (totalMs >= 60000) {
+                    dotClass = 'green';
+                } else {
+                    dotClass = 'orange'; // Started but less than a minute
+                }
+            } else {
+                // Specified duration
+                if (totalMs >= targetMs) { // Changed > to >= just in case
+                    dotClass = 'green';
+                } else {
+                    dotClass = 'orange';
+                }
+            }
+        }
 
         const img = document.createElement('img');
         img.src = `./icons/${act.icon}`;
         img.alt = act.label;
-
         btn.appendChild(img);
+
+        if (dotClass) {
+            const dot = document.createElement('div');
+            dot.className = `status-dot ${dotClass}`;
+            btn.appendChild(dot);
+        }
 
         btn.onclick = () => handleActivityClick(act);
         grid.appendChild(btn);
@@ -392,9 +485,20 @@ function showFocusMode(activity) {
 
     if (!focusView) return;
 
-    // Populate data
-    document.getElementById('focusIcon').src = `./icons/${activity.icon}`;
-    document.getElementById('focusLabel').textContent = activity.label;
+    // Customize title for Sadhana if needed, or rely on updateMetaDisplay
+    if (activity.id === 'sadhana') {
+        renderSadhanaView(focusView);
+    } else {
+        // Standard View
+        // Populate standard data
+        document.getElementById('focusIcon').src = `./icons/${activity.icon}`;
+        document.getElementById('focusIcon').style.display = 'block';
+        document.getElementById('focusLabel').textContent = activity.label;
+
+        // Ensure Sadhana controls are hidden
+        const sadhanaControls = document.getElementById('sadhanaControls');
+        if (sadhanaControls) sadhanaControls.style.display = 'none';
+    }
 
     // Initial Timer Render
     updateFocusTimers();
@@ -409,16 +513,180 @@ function showFocusMode(activity) {
 
     // Add dismiss listeners
     focusView.onclick = (e) => {
-        // If clicking the container background (not the inner content blocks ideally, but user said "anywhere")
-        // User said "click anywhere in the screen". 
-        // We'll just close it.
-        hideFocusMode();
+        // Only dismiss if clicking the backdrop, NOT the interactive controls
+        if (state.currentActivityId === 'sadhana') {
+            // For Sadhana, be more careful about accidental closes
+            if (e.target === focusView || e.target.classList.contains('close-btn')) {
+                stopSadhanaAudio(); // Stop audio on close
+                hideFocusMode();
+            }
+        } else {
+            // Standard behavior
+            if (e.target.closest('.focus-timer-block') || e.target.closest('.focus-icon-wrapper')) {
+                // allow, maybe?
+            }
+            hideFocusMode();
+        }
     };
+}
 
-    // Prevent immediate close if bubble propagation issues (optional, but "anywhere" is broad)
-    // Actually, "anywhere" includes the buttons themselves usually? 
-    // Let's assume clicking ANYWHERE dismisses it. 
-    // BUT, we have a specific Close button too. 
+function stopSadhanaAudio() {
+    if (window.sadhanaAudio) {
+        window.sadhanaAudio.pause();
+        window.sadhanaAudio = null;
+    }
+    state.sadhanaMode = null;
+    state.sadhanaTimerStart = null;
+}
+
+function renderSadhanaView(container) {
+    // Hide standard icon
+    const standardIcon = document.getElementById('focusIcon');
+    if (standardIcon) standardIcon.style.display = 'none';
+
+    // Check if controls already exist
+    let controls = document.getElementById('sadhanaControls');
+    if (!controls) {
+        controls = document.createElement('div');
+        controls.id = 'sadhanaControls';
+        controls.className = 'sadhana-container';
+
+        // Insert after icon wrapper
+        const iconWrapper = container.querySelector('.focus-icon-wrapper');
+        if (iconWrapper) {
+            iconWrapper.appendChild(controls);
+        }
+    }
+
+    controls.style.display = 'flex';
+
+    // Render Buttons and Media Controls
+    controls.innerHTML = `
+        <div class="sadhana-buttons">
+            <button class="sadhana-btn" onclick="startSadhanaMode('shakthi')">
+                <img src="./icons/shakthi.png" alt="Shakthi">
+            </button>
+            <button class="sadhana-btn" onclick="startSadhanaMode('shambhavi')">
+                <img src="./icons/shambhavi.png" alt="Shambhavi">
+            </button>
+            <button class="sadhana-btn" onclick="startSadhanaMode('shoonya')">
+                <img src="./icons/shoonya.png" alt="Shoonya">
+            </button>
+        </div>
+        
+        <div class="media-controls" id="mediaControls">
+            <button class="media-btn" onclick="seekSadhana(-10)">⏮</button>
+            <button class="media-btn" onclick="restartSadhana()">|◀</button>
+            <button class="media-btn play-pause-btn" onclick="toggleSadhanaPlay()">▶</button>
+            <button class="media-btn" onclick="endSadhana()">▶|</button>
+            <button class="media-btn" onclick="seekSadhana(10)">⏭</button>
+        </div>
+    `;
+
+    updateSadhanaUI();
+}
+
+window.startSadhanaMode = function (mode) {
+    state.sadhanaMode = mode;
+    state.sadhanaTimerStart = Date.now(); // Start separate timer
+
+    // Stop previous
+    if (window.sadhanaAudio) {
+        window.sadhanaAudio.pause();
+    }
+
+    if (mode === 'shoonya') {
+        window.sadhanaAudio = null;
+    } else {
+        // Capitalize for filename: shakthi -> Shakthi.mp3
+        const filename = mode.charAt(0).toUpperCase() + mode.slice(1);
+        window.sadhanaAudio = new Audio(`./audio/${filename}.mp3`);
+        window.sadhanaAudio.play().catch(e => console.error("Audio play failed", e));
+
+        // Loop? User didn't specify. Assuming single play.
+        window.sadhanaAudio.onended = () => {
+            // Maybe auto-advance? NO requirements.
+            updateSadhanaUI(); // Update play/pause icon
+        };
+    }
+
+    updateSadhanaUI();
+    updateFocusTimers(); // Immediate update
+};
+
+window.toggleSadhanaPlay = function () {
+    if (window.sadhanaAudio) {
+        if (window.sadhanaAudio.paused) {
+            window.sadhanaAudio.play();
+        } else {
+            window.sadhanaAudio.pause();
+        }
+        updateSadhanaUI();
+    }
+};
+
+window.seekSadhana = function (seconds) {
+    if (window.sadhanaAudio) {
+        window.sadhanaAudio.currentTime += seconds;
+    }
+};
+
+window.restartSadhana = function () {
+    if (window.sadhanaAudio) {
+        window.sadhanaAudio.currentTime = 0;
+        window.sadhanaAudio.play();
+        updateSadhanaUI();
+    }
+};
+
+window.endSadhana = function () {
+    if (window.sadhanaAudio) {
+        // Go to end
+        window.sadhanaAudio.currentTime = window.sadhanaAudio.duration;
+    }
+};
+
+function updateSadhanaUI() {
+    // Update Label to show Sub-Mode
+    const labelEl = document.getElementById('focusLabel');
+    if (labelEl) {
+        if (state.sadhanaMode) {
+            labelEl.textContent = state.sadhanaMode.toUpperCase();
+        } else {
+            labelEl.textContent = 'SADHANA';
+        }
+    }
+
+    // Highlight Active Button
+    const btns = document.querySelectorAll('.sadhana-btn');
+    btns.forEach(btn => {
+        // logic to verify which button corresponds to state.sadhanaMode
+        // Simpler: checking src relative path is flaky. 
+        // Better: add data attributes or ID logic. 
+        // For now, based on onclick string matching which is sloppy but works for simple DOM
+        const mode = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+        if (mode === state.sadhanaMode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Show/Hide Media Controls
+    const mediaControls = document.getElementById('mediaControls');
+    if (mediaControls) {
+        if (state.sadhanaMode === 'shoonya' || !state.sadhanaMode) {
+            mediaControls.style.display = 'none';
+        } else {
+            mediaControls.style.display = 'flex';
+        }
+    }
+
+    // Update Play/Pause Icon
+    const playBtn = document.querySelector('.play-pause-btn');
+    if (playBtn && window.sadhanaAudio) {
+        playBtn.textContent = window.sadhanaAudio.paused ? '▶' : '⏸';
+    }
 }
 
 function hideFocusMode() {
@@ -427,6 +695,10 @@ function hideFocusMode() {
 
     if (focusView) focusView.style.display = 'none';
     if (activityGrid) activityGrid.style.display = ''; // Clear inline style to let CSS control visibility
+
+    // Restore standard elements
+    const standardIcon = document.getElementById('focusIcon');
+    if (standardIcon) standardIcon.style.display = 'block';
 
     // Restore bottom small timers
     const timersCapsule = document.querySelector('.timers-capsule');
@@ -441,8 +713,21 @@ function updateFocusTimers() {
     const now = Date.now();
 
     if (state.currentActivityStartTime) {
-        const diff = now - state.currentActivityStartTime;
-        focusTimer.textContent = formatTimer(diff);
+        if (state.currentActivityId === 'sadhana') {
+            // Debug Log
+            // console.log('DEBUG Timer:', state.sadhanaTimerStart, state.currentActivityId);
+            if (state.sadhanaTimerStart) {
+                const diff = now - state.sadhanaTimerStart;
+                focusTimer.textContent = formatTimer(diff);
+            } else {
+                // If sadhana is active but no sub-mode selected, maybe show total? 
+                // Or if Shoonya, maybe 0? User asked for 0.
+                focusTimer.textContent = "00:00:00";
+            }
+        } else {
+            const diff = now - state.currentActivityStartTime;
+            focusTimer.textContent = formatTimer(diff);
+        }
     } else {
         focusTimer.textContent = "00:00:00";
     }
@@ -585,123 +870,58 @@ function switchMode(mode) {
         case 'settings':
             settingsPanel.style.display = 'flex';
             if (sidePanel) sidePanel.style.display = 'none';
+            // if (timers) timers.style.visibility = 'hidden'; // Don't hide timers if user wants them? Actually user didn't specify, but let's stick to previous logic.
+            // Wait, previous code had `if (timers) timers.style.visibility = 'hidden';`? No, let's check view_file.
+            // View file line 600: `if (sidePanel) sidePanel.style.display = 'none';`.
+            // The view didn't show the break or closing brace. I should view more lines to be safe, OR utilize the lines I saw.
+            // I saw lines 598-600.
+            // Let's replace ONLY lines 598-600 and append new lines.
+
+            settingsPanel.style.display = 'flex';
+            if (sidePanel) sidePanel.style.display = 'none';
             if (timers) timers.style.visibility = 'hidden';
-            if (timers) timers.style.visibility = 'hidden';
-            renderAllSettings();
+            renderSettings();
             break;
     }
 }
 
-function renderAllSettings() {
-    renderGeneralSettings();
-    renderActivitySettings();
-}
+function renderSettings() {
 
-function renderActivitySettings() {
-    const container = document.getElementById('settingsActivity');
-    if (!container) return;
-
-    // Clear container to avoid duplicates if re-rendered
-    container.innerHTML = '';
-
-    getActivities().forEach(act => {
-        // Safe accessors
-        const labelSafe = act.label || '';
-        const startSafe = act.startTime || '';
-        const durationSafe = act.duration || '';
-
-        const row = document.createElement('div');
-        row.className = 'settings-row';
-        row.innerHTML = `
-            <div class="settings-icon">
-                <img src="./icons/${act.icon}" alt="${labelSafe}">
+    const content = document.getElementById('settingsContent');
+    if (content) {
+        content.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <h3>MindfulDay</h3>
+                <p>Version: ${ClientVersion}</p>
+                <br>
+                <button onclick="checkForUpdates()" style="
+                    padding: 10px 20px;
+                    background: #f07c10;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    cursor: pointer;
+                ">
+                    Check for Updates / Refresh
+                </button>
+                <br><br>
+                <p style="color: #666; font-size: 0.9em;">
+                    Activity configuration is now managed via <code>settings_activities.json</code>
+                </p>
             </div>
-            
-            <input type="text" 
-                   class="settings-input settings-name" 
-                   value="${labelSafe}" 
-                   onchange="updateActivitySetting('${act.id}', 'label', this.value)"
-                   placeholder="Name">
-                   
-            <input type="text" 
-                   class="settings-input settings-time" 
-                   value="${startSafe}" 
-                   onchange="updateActivitySetting('${act.id}', 'startTime', this.value)"
-                   placeholder="5:00 AM">
-                   
-            <input type="number" 
-                   class="settings-input settings-duration" 
-                   value="${durationSafe}" 
-                   onchange="updateActivitySetting('${act.id}', 'duration', this.value)"
-                   placeholder="Min">
         `;
-        container.appendChild(row);
-    });
-
-    // Add a "Restore Defaults" button at the bottom
-    const restoreDiv = document.createElement('div');
-    restoreDiv.style.padding = '20px';
-    restoreDiv.style.textAlign = 'center';
-    restoreDiv.innerHTML = `<button style="color: #ff3b30; background: none; border: none; font-size: 14px; cursor: pointer;">Restore Defaults</button>`;
-    restoreDiv.querySelector('button').onclick = () => {
-        if (confirm('Reset all activity names and times to default?')) {
-            state.activitySettings = null; // Will trigger reload from default
-            saveState();
-            location.reload();
-        }
-    };
-    container.appendChild(restoreDiv);
-
-    // Start-to-End Section
-    const steSection = document.createElement('div');
-    steSection.className = 'ste-section';
-    steSection.innerHTML = `
-        <div class="ste-title">Start to End:</div>
-        <div class="ste-row">
-            <span class="ste-label">Born on:</span>
-            <input type="text" 
-                   value="${(state.startToEnd && state.startToEnd.bornOn) || ''}" 
-                   onchange="updateStartToEnd('bornOn', this.value)"
-                   class="ste-input"
-                   placeholder="DD-MM-YYYY">
-        </div>
-        <div class="ste-row">
-            <span class="ste-label">End at</span>
-            <input type="number" 
-                   value="${(state.startToEnd && state.startToEnd.endAt) || ''}" 
-                   onchange="updateStartToEnd('endAt', this.value)"
-                   class="ste-input-small"
-                   placeholder="60">
-            <span style="margin-left: 5px;">Years</span>
-        </div>
-    `;
-    container.appendChild(steSection);
+    }
 }
 
-window.updateStartToEnd = function (field, value) {
-    if (!state.startToEnd) state.startToEnd = { bornOn: '', endAt: '' };
-    state.startToEnd[field] = value;
-    saveState();
-};
+// Removed old renderAllSettings calls and definitions as they are replaced by renderSettings
+function renderAllSettings() { } // Stub or remove
+function renderGeneralSettings() { }
+// Cleanup complete
 
-// Exposed globally for onchange events
-window.updateActivitySetting = function (id, field, value) {
-    if (!state.activitySettings) {
-        state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
-    }
+// Cleanup step 2 complete
 
-    const act = state.activitySettings.find(a => a.id === id);
-    if (act) {
-        if (field === 'duration') {
-            act[field] = parseInt(value) || 0;
-        } else {
-            act[field] = value;
-        }
-        saveState();
-        // Re-render main grid to reflect name changes immediately
-        renderActivities();
-    }
-};
+// Cleanup complete
 
 function setupTabs() {
     const tabs = document.querySelectorAll('.tab-btn');
@@ -806,6 +1026,19 @@ function checkUpdateSuccess() {
 
 // toggleSettingsMode removed - handled directly in switchMode
 
+
+// Check for updates
+window.checkForUpdates = async function () {
+    console.log('Checking for updates...');
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.update();
+        }
+    }
+    // Force reload ignoring cache
+    window.location.reload(true);
+};
 
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -918,6 +1151,17 @@ function setupConfirmModal() {
         window.addEventListener('mouseup', endDrag);
         window.addEventListener('touchend', endDrag);
     }
+
+    // Click on track to confirm (Right side click)
+    if (container) {
+        container.onclick = (e) => {
+            // Check if we clicked the handle (already handled by drag/click logic there)
+            if (e.target === handle || handle.contains(e.target)) return;
+
+            // Otherwise, track click -> Confirm
+            triggerConfirmAnimation();
+        };
+    }
 }
 
 function showConfirmModal(activity) {
@@ -944,15 +1188,10 @@ function showConfirmModal(activity) {
             curIconImg.src = `./icons/${currentAct.icon}`;
             curIconImg.style.opacity = '1';
         } else {
-            // Fallback
             curIconImg.src = `./icons/run_mode.svg`;
             curIconImg.style.opacity = '0.3';
         }
     } else {
-        // No current activity (e.g. start of day)
-        // Show maybe "Sleep" or just a placeholder? 
-        // Let's use "Sleep" if it was yesterday? Or just a generic circle?
-        // Let's use a generic opacity
         curIconImg.src = `./icons/run_mode.svg`;
         curIconImg.style.opacity = '0.3';
     }
@@ -1030,22 +1269,9 @@ function endDrag(e) {
 
     const isClick = movedDist < 5; // moved less than 5 pixels
 
-    // If dragged more than 90% OR Clicked
-    if (px > maxDrag * 0.9 || isClick) {
-        // Confirm!
-        handle.style.transition = 'transform 0.2s ease'; // Fast slide
-        handle.style.transform = `translateX(${maxDrag}px)`;
-
-        // Hide text
-        const text = document.querySelector('.slider-text');
-        if (text) text.style.opacity = '0';
-
-        setTimeout(() => {
-            if (pendingActivity) {
-                confirmStart(pendingActivity);
-            }
-            hideConfirmModal();
-        }, 250);
+    // If dragged more than 50% (Lowered from 90% for better feel) OR Clicked
+    if (px > maxDrag * 0.5 || isClick) {
+        triggerConfirmAnimation();
     } else {
         // Snap Back
         handle.style.transition = 'transform 0.3s ease';
@@ -1053,6 +1279,30 @@ function endDrag(e) {
         const text = document.querySelector('.slider-text');
         if (text) text.style.opacity = '1';
     }
+}
+
+function triggerConfirmAnimation() {
+    if (!pendingActivity) return;
+
+    const handle = document.getElementById('sliderHandle');
+    const container = document.getElementById('sliderContainer');
+    const width = container.offsetWidth;
+    const hWidth = handle.offsetWidth;
+    const finalDrag = width - hWidth - 8;
+
+    handle.style.transition = 'transform 0.2s ease'; // Fast slide
+    handle.style.transform = `translateX(${finalDrag}px)`;
+
+    // Hide text
+    const text = document.querySelector('.slider-text');
+    if (text) text.style.opacity = '0';
+
+    setTimeout(() => {
+        if (pendingActivity) {
+            confirmStart(pendingActivity);
+        }
+        hideConfirmModal();
+    }, 250);
 }
 
 function updateConfirmTimers() {

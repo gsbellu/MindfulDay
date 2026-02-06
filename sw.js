@@ -6,6 +6,7 @@ const ASSETS = [
     './app.js',
     './manifest.json',
     './firebase-config.js',
+    './settings_activities.json',
     './icons/ayurveda_activity.svg',
     './icons/baby.svg',
     './icons/bath_activity.svg',
@@ -32,7 +33,12 @@ const ASSETS = [
     './icons/sunrise_time.svg',
     './icons/sunset_time.svg',
     './icons/wake-up_activity.svg',
-    './icons/walk_activity.svg'
+    './icons/walk_activity.svg',
+    './icons/shakthi.png',
+    './icons/shambhavi.png',
+    './icons/shoonya.png',
+    './audio/Shakthi.mp3',
+    './audio/Shambhavi.mp3'
 ];
 
 self.addEventListener('install', (e) => {

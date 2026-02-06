@@ -1,0 +1,110 @@
+[
+    {
+        "id": "wakeup",
+        "label": "Wake Up",
+        "icon": "wake-up_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "bath",
+        "label": "Bath",
+        "icon": "bath_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "meds",
+        "label": "Meds",
+        "icon": "ayurveda_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "sadhana",
+        "label": "Sadhana",
+        "icon": "sadhana_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "exercise",
+        "label": "Exercise",
+        "icon": "exercise_activity.svg",
+        "duration": 10
+    },
+    {
+        "id": "groom",
+        "label": "Groom",
+        "icon": "groom_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "family-time",
+        "label": "Family Time",
+        "icon": "family-time_activity.svg",
+        "duration": 15
+    },
+    {
+        "id": "dressup",
+        "label": "Dress-up",
+        "icon": "dress-up_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "eat",
+        "label": "Eat",
+        "icon": "eat_activity.svg",
+        "duration": 10
+    },
+    {
+        "id": "drive",
+        "label": "Drive",
+        "icon": "drive_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "work",
+        "label": "Work",
+        "icon": "office-work_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "chat",
+        "label": "Chat",
+        "icon": "chat_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "coffee",
+        "label": "Coffee",
+        "icon": "coffee-break_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "fun",
+        "label": "Fun",
+        "icon": "entertainment_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "learn",
+        "label": "Learn",
+        "icon": "read_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "walk",
+        "label": "Walk",
+        "icon": "walk_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "relax",
+        "label": "Relax",
+        "icon": "relax_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "sleep",
+        "label": "Sleep",
+        "icon": "sleep_activity.svg",
+        "duration": 360
+    }
+]

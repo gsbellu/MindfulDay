@@ -198,6 +198,9 @@ body.settings-active .main-panel {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    overflow: visible !important;
+    position: relative;
+    z-index: 1;
 }
 
 .activity-btn img {
@@ -775,4 +778,103 @@ body.settings-active .main-panel {
 #confirmDayBlock {
     margin-top: 0;
     background: #f07c10;
+}
+
+/* Status Dots for Activities */
+.status-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 100 !important;
+    /* High z-index to ensure visibility */
+}
+
+.status-dot.green {
+    background-color: #4cd964;
+    /* iOS Green */
+}
+
+.status-dot.orange {
+    background-color: #ff9500;
+    /* iOS Orange */
+}
+
+/* --- Sadhana Focus View --- */
+.sadhana-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.sadhana-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.sadhana-btn {
+    width: 70px;
+    height: 70px;
+    background: #ffffff;
+    border: 3px solid transparent;
+    border-radius: 4px;
+    /* Slightly squared based on icon */
+    padding: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sadhana-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.sadhana-btn.active {
+    border-color: #f07c10;
+    /* Orange highlight */
+    transform: scale(1.05);
+}
+
+.media-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #f2f2f7;
+    padding: 10px 20px;
+    border-radius: 30px;
+}
+
+.media-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #8e8e93;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.media-btn:active {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.play-pause-btn {
+    font-size: 32px;
+    color: #1c1c1e;
+    /* Darker key color */
 }
