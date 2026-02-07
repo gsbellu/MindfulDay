@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V33-06.02.2026-08:45 PM";
+const ClientVersion = "V38-07.02.2026-06:17 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
@@ -35,6 +35,7 @@ let state = {
     history: [],
     yesterday: null, // Stores previous day's data
     activitySettings: null, // Check loadState for initialization
+    quotes: [], // Stores Sadhguru quotes
     startToEnd: null // { bornOn: '', endAt: '' }
 };
 
@@ -46,6 +47,9 @@ function getActivities() {
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
     checkUpdateSuccess();
+
+    // Fetch quotes
+    fetchQuotes();
 
     // Fetch external settings (fire and forget, it will re-render when done)
     fetchActivitySettings();
@@ -92,6 +96,22 @@ function fetchActivitySettings() {
         })
         .catch(err => {
             console.warn("Could not load settings_activities.json, using defaults.", err);
+        });
+}
+
+function fetchQuotes() {
+    fetch(`sadhguru.json?t=${Date.now()}`)
+        .then(response => {
+            if (!response.ok) throw new Error("Quotes file not found");
+            return response.json();
+        })
+        .then(data => {
+            state.quotes = data;
+            console.log("Loaded quotes:", data.length);
+        })
+        .catch(err => {
+            console.warn("Could not load sadguru.json", err);
+            state.quotes = [];
         });
 }
 
@@ -440,9 +460,38 @@ function confirmStart(activity) {
         renderActivities();
         saveState();
 
+        // Reset Sadhana state if we are switching TO it (or just re-opening it)
+        // Wait, if it IS the current activity, do we reset? 
+        // User said "When Sadhana activity starts... should start from zero".
+        // If I click the focused activity again, maybe I want to check time. 
+        // But here we are returning early if it IS the current activity.
+        // So this logic only runs if we are *switching* to it or opening it fresh. 
+
+        // Actually, the block above handles "If clicking the SAME activity again".
+        // So we need to insert the reset logic there too if we want "Re-clicking resets"? 
+        // No, re-clicking usually just shows the focus view. 
+        // The user says "When Sadhana activity starts...". 
+        // Let's assume on "Switch".
+
         // Show Focus Mode for Wake Up too
         showFocusMode(activity);
+
+        // Show Quote Overlay with slight delay to appear "after" switch
+        // Show Quote Overlay with minimal delay (next tick) to ensure DOM update
+        setTimeout(() => {
+            showQuoteOverlay();
+        }, 0);
         return;
+    }
+
+    // New Activity Clicked
+
+    // Reset Sadhana state for fresh start whenever we switch activities
+    state.sadhanaMode = null;
+    state.sadhanaTimerStart = null;
+    if (window.sadhanaAudio) {
+        window.sadhanaAudio.pause();
+        window.sadhanaAudio = null;
     }
 
     // Start Day Timer on FIRST activity of any kind if not started
@@ -476,6 +525,12 @@ function confirmStart(activity) {
 
     // Show Focus Mode on new activity click
     showFocusMode(activity);
+
+    // Show Quote Overlay with slight delay
+    // Show Quote Overlay with minimal delay (next tick)
+    setTimeout(() => {
+        showQuoteOverlay();
+    }, 0);
 }
 
 // --- Focus Mode Logic ---
@@ -540,9 +595,12 @@ function stopSadhanaAudio() {
 }
 
 function renderSadhanaView(container) {
-    // Hide standard icon
+    // Show standard icon for Sadhana too
     const standardIcon = document.getElementById('focusIcon');
-    if (standardIcon) standardIcon.style.display = 'none';
+    if (standardIcon) {
+        standardIcon.src = './icons/sadhana_activity.svg';
+        standardIcon.style.display = 'block';
+    }
 
     // Check if controls already exist
     let controls = document.getElementById('sadhanaControls');
@@ -720,9 +778,9 @@ function updateFocusTimers() {
                 const diff = now - state.sadhanaTimerStart;
                 focusTimer.textContent = formatTimer(diff);
             } else {
-                // If sadhana is active but no sub-mode selected, maybe show total? 
-                // Or if Shoonya, maybe 0? User asked for 0.
-                focusTimer.textContent = "00:00:00";
+                // If sadhana is active but no sub-mode selected, show TOTAL duration
+                const diff = now - state.currentActivityStartTime;
+                focusTimer.textContent = formatTimer(diff);
             }
         } else {
             const diff = now - state.currentActivityStartTime;
@@ -854,9 +912,21 @@ function switchMode(mode) {
 
     switch (mode) {
         case 'run':
+            document.body.classList.remove('settings-active');
             mainPanel.style.display = 'flex';
             if (sidePanel) sidePanel.style.display = 'flex';
             if (timers) timers.style.visibility = 'visible';
+
+            // Ensure View
+            const grid = document.getElementById('activityGrid');
+            const focus = document.getElementById('focusView');
+            // If we are in focus mode, keep it. Else show grid.
+            if (focus && focus.style.display === 'flex') {
+                grid.style.display = 'none';
+            } else {
+                if (grid) grid.style.display = 'grid';
+                renderActivities(); // Ensure content
+            }
             break;
 
         case 'measure':
@@ -870,17 +940,8 @@ function switchMode(mode) {
         case 'settings':
             settingsPanel.style.display = 'flex';
             if (sidePanel) sidePanel.style.display = 'none';
-            // if (timers) timers.style.visibility = 'hidden'; // Don't hide timers if user wants them? Actually user didn't specify, but let's stick to previous logic.
-            // Wait, previous code had `if (timers) timers.style.visibility = 'hidden';`? No, let's check view_file.
-            // View file line 600: `if (sidePanel) sidePanel.style.display = 'none';`.
-            // The view didn't show the break or closing brace. I should view more lines to be safe, OR utilize the lines I saw.
-            // I saw lines 598-600.
-            // Let's replace ONLY lines 598-600 and append new lines.
-
-            settingsPanel.style.display = 'flex';
-            if (sidePanel) sidePanel.style.display = 'none';
             if (timers) timers.style.visibility = 'hidden';
-            renderSettings();
+            showSettings();
             break;
     }
 }
@@ -1140,6 +1201,15 @@ function setupConfirmModal() {
         closeBtn.onclick = hideConfirmModal;
     }
 
+    // Close on background click
+    if (modal) {
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                hideConfirmModal();
+            }
+        };
+    }
+
     // Slider Events
     if (handle) {
         handle.addEventListener('mousedown', startDrag);
@@ -1167,6 +1237,12 @@ function setupConfirmModal() {
 function showConfirmModal(activity) {
     pendingActivity = activity;
     const modal = document.getElementById('confirmModal');
+
+    // Set dynamic title
+    const confirmTitle = document.getElementById('confirmTitle');
+    if (confirmTitle) {
+        confirmTitle.textContent = `Switch to ${activity.label}?`;
+    }
 
     // reset slider
     const handle = document.getElementById('sliderHandle');
@@ -1322,5 +1398,206 @@ function updateConfirmTimers() {
         document.getElementById('confirmDayTimer').textContent = formatTimer(dayDiff);
     } else {
         document.getElementById('confirmDayTimer').textContent = "00:00:00";
+    }
+}
+
+// --- Sadhguru Quote Logic ---
+function showQuoteOverlay() {
+    // Fallback if quotes not loaded yet
+    let pool = state.quotes;
+    if (!pool || pool.length === 0) {
+        console.warn("Using fallback quotes");
+        pool = [
+            "How deeply you touch another life is how rich your life is.",
+            "You cannot exist without the universe. You are not a separate existence.",
+            "Learning is not about earning, but a way of flowering."
+        ];
+    }
+
+    const randomQuote = pool[Math.floor(Math.random() * pool.length)];
+
+    let overlay = document.getElementById('quoteOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'quoteOverlay';
+        overlay.className = 'quote-overlay';
+
+        // Inner HTML structure
+        overlay.innerHTML = `
+            <div class="quote-card">
+                <button class="quote-close-btn" onclick="hideQuoteOverlay()">×</button>
+                <div class="quote-content">
+                    <img src="./icons/sadhguru.png" alt="Sadhguru" class="quote-author-img">
+                    <p class="quote-text">“${randomQuote}”</p>
+                    <img src="./icons/sadhguru-sign.png" alt="Sadhguru Signature" class="quote-sign-img">
+                </div>
+            </div>
+        `;
+        document.getElementById('mainPanel').appendChild(overlay);
+
+        // Remove local onclick as we are using global now
+    } else {
+        // Update content if already exists
+        const textEl = overlay.querySelector('.quote-text');
+        if (textEl) textEl.textContent = `“${randomQuote}”`;
+    }
+
+    // Force display and higher z-index inline to debug
+    overlay.style.display = 'flex';
+    overlay.style.zIndex = '99999';
+    console.log("Showing Quote Overlay:", randomQuote);
+
+    // Auto close after 20 seconds
+    if (window.quoteTimeout) clearTimeout(window.quoteTimeout);
+    window.quoteTimeout = setTimeout(() => {
+        hideQuoteOverlay();
+    }, 20000);
+
+    // Global click listener to close on ANY click (even outside the overlay)
+    // Add small delay to prevent immediate triggering if created by a click
+    setTimeout(() => {
+        document.addEventListener('click', window.hideQuoteOverlay);
+    }, 100);
+}
+
+
+// --- Settings Mode Logic ---
+
+function showSettings() {
+    state.settingsMode = true;
+    document.body.classList.add('settings-active');
+
+    const container = document.getElementById('settingsContent');
+    if (!container) return;
+
+    // Load saved values
+    const msg = localStorage.getItem('countdownMsg') || "? Days to Retirement";
+    const start = localStorage.getItem('countdownStart') || "";
+    const end = localStorage.getItem('countdownEnd') || "";
+
+    container.innerHTML = `
+        <div class="settings-section">
+            <div class="settings-header">Countdown</div>
+            
+            <div class="settings-group">
+                <label class="settings-label">Text:</label>
+                <input type="text" id="cdMsg" class="settings-input" value="${msg}">
+            </div>
+
+            <div class="settings-date-row">
+                <div class="settings-date-group">
+                    <label class="settings-label">Start:</label>
+                    <input type="date" id="cdStart" class="settings-input" value="${start}">
+                </div>
+                <div class="settings-date-group">
+                    <label class="settings-label">End:</label>
+                    <input type="date" id="cdEnd" class="settings-input" value="${end}">
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-header">Version</div>
+            
+            <div class="version-display">
+                Version: ${window.APP_VERSION || 'Loading...'}
+            </div>
+            
+            <button class="update-btn" onclick="window.location.reload(true)">
+                Check for Updates / Refresh
+            </button>
+            <div class="settings-note">
+                Activity configuration is now managed via settings_activities.json
+            </div>
+        </div>
+    `;
+
+    // Add listeners for auto-save
+    setupCountdownEvents();
+}
+
+function setupCountdownEvents() {
+    const msgInput = document.getElementById('cdMsg');
+    const startInput = document.getElementById('cdStart');
+    const endInput = document.getElementById('cdEnd');
+
+    const saveAndRender = () => {
+        localStorage.setItem('countdownMsg', msgInput.value);
+        localStorage.setItem('countdownStart', startInput.value);
+        localStorage.setItem('countdownEnd', endInput.value);
+        updateLifeProgress();
+    };
+
+    if (msgInput) msgInput.oninput = saveAndRender;
+    if (startInput) startInput.onchange = saveAndRender;
+    if (endInput) endInput.onchange = saveAndRender;
+}
+
+function updateLifeProgress() {
+    const msg = localStorage.getItem('countdownMsg') || "? Days to Retirement";
+    const startStr = localStorage.getItem('countdownStart');
+    const endStr = localStorage.getItem('countdownEnd');
+
+    const progressBar = document.getElementById('lifeProgressBar');
+    const progressText = document.getElementById('lifeProgressText');
+
+    if (!progressBar || !progressText) return;
+
+    // Default state
+    let percentage = 0;
+    let daysLeft = "?";
+
+    if (startStr && endStr) {
+        const start = new Date(startStr).getTime();
+        const end = new Date(endStr).getTime();
+        const now = Date.now();
+
+        if (end > start) {
+            const total = end - start;
+            const elapsed = now - start;
+            percentage = (elapsed / total) * 100;
+
+            // Clamp
+            if (percentage < 0) percentage = 0;
+            if (percentage > 100) percentage = 100;
+
+            // Days Calculation
+            const diffTime = end - now;
+            // Round up to nearest day
+            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // If passed, days left could be negative. Show 0? or negative?
+            // "113 days to live" implies future. 
+            // Let's show 0 if passed.
+            if (daysLeft < 0) daysLeft = 0;
+        } else {
+            console.warn("Countdown: End date must be after Start date");
+            daysLeft = "Error";
+            // Show error in Settings if open?
+        }
+    } else {
+        console.log("Countdown: Missing start or end date", startStr, endStr);
+    }
+
+    // Log for debugging
+    console.log("Countdown Update:", { percentage, daysLeft, msg, startStr, endStr });
+
+    // Update Bar - Height is percentage
+    progressBar.style.height = `${percentage}%`;
+
+    // Update Text (Replace ? with number)
+    if (daysLeft === "Error") {
+        progressText.textContent = "Check Dates (Start < End)";
+        progressText.style.color = "red";
+    } else if (msg.includes('?')) {
+        progressText.textContent = msg.replace('?', daysLeft);
+        progressText.style.color = ""; // reset
+    } else {
+        // Fallback if user removed '?' or just wants to append
+        // But user said "The '?' ... will be replaced". 
+        // If no '?', we can just show the msg as is? Or prefix?
+        // Let's leave msg as is if no '?' found, assuming user customized it fully.
+        progressText.textContent = msg;
+        progressText.style.color = ""; // reset
     }
 }

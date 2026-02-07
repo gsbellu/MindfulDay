@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v4-offline-ios-fix';
+const CACHE_NAME = 'mindfulday-v6-rename';
 const ASSETS = [
     './',
     './index.html',
@@ -38,7 +38,10 @@ const ASSETS = [
     './icons/shambhavi.png',
     './icons/shoonya.png',
     './audio/Shakthi.mp3',
-    './audio/Shambhavi.mp3'
+    './audio/Shambhavi.mp3',
+    './sadhguru.json',
+    './icons/sadhguru.png',
+    './icons/sadhguru-sign.png'
 ];
 
 self.addEventListener('install', (e) => {
