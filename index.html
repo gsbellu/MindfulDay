@@ -8,9 +8,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MindfulDay</title>
-    <link rel="manifest" href="manifest.json?v=2.1">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css?v=2.3">
     <link rel="icon" type="image/png" href="lotus-icon.png">
+    <link rel="apple-touch-icon" href="lotus-icon.png">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <!-- Firebase SDK -->
@@ -30,131 +31,101 @@
 
 <body>
     <div class="app-container">
-        <!-- Panel 0: Left Panel (Reserved) -->
-        <aside class="left-panel">
-            <div class="timeline-background">
-                <div class="timeline-visual" id="lifeVisual">
-                    <div class="timeline-icon top-icon">
-                        <img src="icons/baby.svg" alt="Born">
-                    </div>
-                    <div class="timeline-track">
-                        <div class="life-progress-bar" id="lifeProgressBar"></div>
-                        <div class="life-progress-text" id="lifeProgressText">Loading...</div>
-                    </div>
-                    <div class="timeline-icon bottom-icon">
-                        <img src="icons/old.svg" alt="End">
-                    </div>
-                </div>
-            </div>
-        </aside>
+        <!-- Area 1: Title Area (4%) -->
+        <header class="title-area">
+            <div class="title-card">Mindful Day</div>
+        </header>
 
-        <!-- Panel 1: Main Panel (Run Mode) -->
-        <main class="main-panel" id="mainPanel">
-            <!-- Content Injected via JS -->
+        <!-- Area 2: Main Area (65%) -->
+        <main class="main-area" id="mainPanel">
+            <!-- Activity Grid (Run Mode) -->
             <div class="activity-grid" id="activityGrid"></div>
 
-            <!-- Focus View (New) -->
+            <!-- Measure Mode Panels (Hidden by default) -->
+            <div id="measurePanel" class="measure-container" style="display: none;">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-target="measureToday">Today</button>
+                    <button class="tab-btn" data-target="measureYesterday">Yesterday</button>
+                </div>
+                <div id="measureToday" class="tab-content monitor-view"></div>
+                <div id="measureYesterday" class="tab-content monitor-view" style="display: none;">
+                    <div style="padding: 20px; text-align: center; color: #888;">No data for yesterday</div>
+                </div>
+            </div>
+
+            <!-- Settings Panel (Hidden by default) -->
+            <div id="settingsPanel" class="settings-container" style="display: none;">
+                <div id="settingsContent"></div>
+            </div>
+
+            <!-- Focus View (Overlay/Embedded) -->
             <div class="focus-view" id="focusView" style="display: none;">
                 <button class="close-btn" id="closeFocusBtn">&times;</button>
                 <div class="focus-content">
-                    <!-- Icon -->
                     <div class="focus-icon-wrapper">
                         <img id="focusIcon" src="" alt="Activity Icon">
                     </div>
-
-                    <!-- Current Timer -->
+                    <!-- Large Timer in Main View -->
                     <div class="focus-timer-block green-block">
                         <span class="focus-label" id="focusLabel">ACTIVITY</span>
                         <span class="focus-timer" id="focusTimer">00:00:00</span>
                     </div>
-
-                    <!-- Day Timer -->
-                    <div class="focus-timer-block orange-block">
-                        <span class="focus-label">ALL DAY</span>
-                        <span class="focus-timer" id="focusDayTimer">00:00:00</span>
-                    </div>
                 </div>
             </div>
         </main>
 
-        <!-- Panel 1.5: Measure Panel (New) -->
-        <main class="main-panel" id="measurePanel" style="display: none;">
-            <div class="tab-navigation">
-                <button class="tab-btn active" data-target="measureToday">Today</button>
-                <button class="tab-btn" data-target="measureYesterday">Yesterday</button>
+        <!-- Area 3: Timer Area (10%) -->
+        <section class="timer-area">
+            <div class="timer-pill green-pill">
+                <span id="currentActivityLabel" class="timer-label-overlay">Ready</span>
+                <span id="currentActivityTimer">00:00</span>
             </div>
-
-            <div id="measureToday" class="tab-content monitor-view">
-                <!-- Content Injected via JS -->
+            <div class="timer-pill orange-pill">
+                <span class="timer-label-overlay">All Day</span>
+                <span id="dayTimer">00:00:00</span>
             </div>
-            <div id="measureYesterday" class="tab-content monitor-view" style="display: none;">
-                <div style="padding: 20px; text-align: center; color: #888;">No data for yesterday</div>
-            </div>
-        </main>
-
-        <!-- Settings Panel -->
-        <main class="main-panel" id="settingsPanel" style="display: none;">
-            <div id="settingsContent" class="settings-container"></div>
-        </main>
-
-        <!-- Panel 2: Side Panel (Visualization) -->
-        <aside class="side-panel">
-            <div class="timeline-background">
-                <!-- Visual Container -->
-                <div class="timeline-visual" id="timelineVisual">
-                    <!-- Top: Sunrise -->
-                    <div class="timeline-icon top-icon">
-                        <img src="icons/sunrise_time.svg" alt="Sunrise">
-                    </div>
-
-                    <div class="timeline-track">
-                        <div class="timeline-progress" id="timelineProgress"></div>
-
-                        <!-- Markers -->
-                        <div class="track-marker marker-noon">
-                            <img src="icons/noon_time.svg" alt="Noon">
-                        </div>
-                        <div class="track-marker marker-evening">
-                            <img src="icons/evening_time.svg" alt="Evening">
-                        </div>
-                    </div>
-
-                    <!-- Bottom: Midnight -->
-                    <div class="timeline-icon bottom-icon">
-                        <img src="icons/mid-night_time.svg" alt="Midnight">
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- New Bottom Section Container -->
-        <section class="bottom-section">
-            <!-- Timers Row -->
-            <div class="timers-capsule">
-                <div class="timer-pill green-pill">
-                    <span id="currentActivityLabel" class="timer-label-overlay">Ready</span>
-                    <span id="currentActivityTimer">00:00</span>
-                </div>
-                <!-- Day Timer -->
-                <div class="timer-pill orange-pill">
-                    <span class="timer-label-overlay">All Day</span>
-                    <span id="dayTimer">00:00:00</span>
-                </div>
-            </div>
-
-            <!-- Navigation Row -->
-            <nav class="bottom-nav">
-                <button class="nav-btn active" data-mode="run">
-                    <img src="icons/run_mode.svg" alt="Run">
-                </button>
-                <button class="nav-btn" data-mode="measure">
-                    <img src="icons/measure_mode.svg" alt="Measure">
-                </button>
-                <button class="nav-btn" data-mode="settings">
-                    <img src="icons/settings_mode.svg" alt="Settings">
-                </button>
-            </nav>
         </section>
+
+        <!-- Area 4: Progress Area (12%) -->
+        <section class="progress-area">
+            <!-- Top: Today Progress -->
+            <div class="progress-bar-container">
+                <div class="progress-bar todays-progress" id="timelineProgress">
+                    <span class="progress-text">Today</span>
+                </div>
+            </div>
+            <!-- Bottom: Life Progress -->
+            <div class="progress-bar-container">
+                <div class="progress-bar life-progress" id="lifeProgressBar">
+                    <span class="progress-text" id="lifeProgressText">Loading...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Area 5: Navigation Area (9%) -->
+        <nav class="navigation-area">
+            <button class="nav-btn active" data-mode="run">
+                <img src="icons/run_mode.svg" alt="Run">
+            </button>
+            <button class="nav-btn" data-mode="measure">
+                <img src="icons/measure_mode.svg" alt="Measure">
+            </button>
+            <button class="nav-btn" data-mode="settings">
+                <img src="icons/settings_mode.svg" alt="Settings">
+            </button>
+        </nav>
+
+        <!-- Quote Overlay -->
+        <div class="quote-overlay" id="quoteOverlay" style="display: none;">
+            <div class="quote-card">
+                <button class="quote-close-btn" onclick="hideQuoteOverlay()">&times;</button>
+                <div class="quote-content">
+                    <img id="quoteAuthorImg" src="" class="quote-author-img" alt="Author">
+                    <div id="quoteText" class="quote-text">Loading quote...</div>
+                    <img id="quoteSignImg" src="" class="quote-sign-img" alt="Author Signature">
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Slide-to-Confirm Modal -->
@@ -197,6 +168,33 @@
         </div>
     </div>
 
+    <script>
+        // Global Log for PWA Debugging
+        window.pwaDebugLog = window.pwaDebugLog || [];
+        function logPWA(msg) {
+            console.log('[PWA Debug]', msg);
+            window.pwaDebugLog.push(new Date().toLocaleTimeString() + ': ' + msg);
+            // If app is running and settings open, trigger refresh (optional, handled by app.js polling or user refresh)
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => {
+                        logPWA('SW Registered. Scope: ' + reg.scope);
+                        if (reg.installing) logPWA('SW Installing');
+                        if (reg.waiting) logPWA('SW Waiting/Installed');
+                        if (reg.active) logPWA('SW Active');
+                    })
+                    .catch(err => logPWA('SW Registration Failed: ' + err));
+            });
+        } else {
+            logPWA('Service Worker not supported');
+            logPWA('Secure Context: ' + window.isSecureContext);
+            logPWA('Protocol: ' + window.location.protocol);
+            logPWA('Hostname: ' + window.location.hostname);
+        }
+    </script>
     <script src="app.js?v=force_13"></script>
 </body>
 

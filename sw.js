@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v6-rename';
+const CACHE_NAME = 'mindfulday-v8-debug';
 const ASSETS = [
     './',
     './index.html',
@@ -41,36 +41,45 @@ const ASSETS = [
     './audio/Shambhavi.mp3',
     './sadhguru.json',
     './icons/sadhguru.png',
-    './icons/sadhguru-sign.png'
+    './icons/sadhguru-sign.png',
+    './lotus-icon.png',
+    './icons/cinema_activity.svg',
+    './icons/groom_activity.svg',
+    './icons/listen_activity.svg',
+    './icons/read_activity.svg',
+    './icons/relax_activity.svg',
+    './icons/travel_activity.svg',
+    './icons/web_activity.svg',
+    './icons/youtube_activity.svg'
 ];
 
 self.addEventListener('install', (e) => {
+    // Force the waiting service worker to become the active service worker.
+    self.skipWaiting();
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
     );
 });
 
 self.addEventListener('activate', (event) => {
+    // Make the service worker take control of the page immediately.
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((name) => {
-                    if (name !== CACHE_NAME) {
-                        return caches.delete(name);
-                    }
-                })
-            );
-        })
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((name) => {
+                        if (name !== CACHE_NAME) {
+                            return caches.delete(name);
+                        }
+                    })
+                );
+            })
+        ])
     );
 });
 
 self.addEventListener('fetch', (e) => {
-    // Network first for JSON/API, Cache first for assets?
-    // For now, sticking to Cache First with Network Fallback (or StaleWhileRevalidate) logic is better for PWA,
-    // BUT the user wants "Update" to update immediately.
-    // The current logic is: caches.match(e.request).then((response) => response || fetch(e.request))
-    // This is Cache Falling Back to Network.
-
     // We want to ensure version.json is ALWAYS network first
     if (e.request.url.includes('version.json') || e.request.url.includes('app.js')) {
         e.respondWith(

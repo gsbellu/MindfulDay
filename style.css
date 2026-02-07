@@ -12,25 +12,17 @@
     -webkit-tap-highlight-color: transparent;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     user-select: none;
+    scrollbar-width: none;
 }
 
-html {
-    height: 100%;
-    overscroll-behavior: none;
-}
-
+html,
 body {
-    background: #000000;
-    /* Nuclear Option: Black background hides all safe area glitches */
-    color: var(--text-color);
     height: 100%;
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
     width: 100vw;
+    background: #000000;
+    color: var(--text-color);
     overflow: hidden;
     overscroll-behavior: none;
-    margin: 0;
-    padding: 0;
 }
 
 /* Global Scrollbar Hide */
@@ -38,182 +30,83 @@ body {
     display: none;
 }
 
-* {
-    scrollbar-width: none;
-}
-
+/* --- Layout Container --- */
 .app-container {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
-    grid-template-columns: 30px 1fr 30px;
-    grid-template-rows: 1fr auto;
-    /* Content | Bottom Section */
-    grid-template-areas:
-        "left main side"
-        "bottom bottom bottom";
-    padding-top: var(--safe-area-top);
-    padding-bottom: 0;
-    /* Handled by bottom section */
     background: #ffffff;
-    /* Ensure app content stays white */
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
 }
 
-/* --- Main Panel --- */
-.main-panel {
-    grid-area: main;
+/* Area 1: Title Area (4%) */
+.title-area {
+    height: 4%;
     display: flex;
-    /* Restored to Flex */
-    flex-direction: column;
-    padding: 10px;
-    height: 100%;
-    /* Fill grid cell */
-    overflow: hidden;
-    /* No scrolling allowed */
-    position: relative;
-    /* Contain Focus View */
-}
-
-/* Settings Mode Overrides */
-body.settings-active .left-panel,
-body.settings-active .side-panel,
-body.settings-active .timers-capsule,
-body.settings-active .activity-grid {
-    display: none !important;
-}
-
-body.settings-active .main-panel {
-    grid-column: 1 / -1;
-    /* Full Width */
-    grid-row: 1 / 2;
-    /* Occupy first row only */
-    display: flex;
-    justify-content: center;
     align-items: center;
-}
-
-.activity-grid {
-    flex: 1;
-    display: grid;
-    /* 3 Columns, 5 Rows - forced fit */
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    gap: 10px;
-    /* Slightly tighter gap to ensure fit */
-    border-radius: 16px;
-}
-
-/* --- Monitor View --- */
-/* --- Monitor View --- */
-.monitor-view {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 5px 5px 5px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-/* Tab Navigation Styling */
-.tab-navigation {
-    display: flex;
     justify-content: center;
-    gap: 10px;
-    padding: 10px 0;
-    margin-bottom: 10px;
-    flex-shrink: 0;
+    padding: 2px 10px;
 }
 
-.tab-btn {
-    background: #f2f2f7;
-    border: none;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #8e8e93;
-    cursor: pointer;
-    border-radius: 20px;
-    transition: all 0.2s ease;
-}
-
-.tab-btn.active {
+.title-card {
     background: #000000;
     color: #ffffff;
-}
-
-.tab-content {
-    flex: 1;
-    overflow-y: auto;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.activity-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #f8f9fa;
+    padding: 0;
     border-radius: 12px;
-    border-left: 4px solid transparent;
-}
-
-.activity-row.tracked {
-    border-left-color: #10b981;
-}
-
-.activity-row.not-tracked {
-    border-left-color: #ef4444;
-    opacity: 0.6;
-}
-
-.activity-row-icon {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-}
-
-.activity-row-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.activity-row-name {
     font-weight: 600;
     font-size: 14px;
-    color: #1f2937;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.activity-row-info {
-    font-size: 12px;
-    color: #6b7280;
+/* Area 2: Main Area (65%) */
+.main-area {
+    height: 65%;
+    position: relative;
+    overflow: hidden;
+    padding: 10px;
+    display: flex;
+    /* Ensure centering for settings/focus */
+    flex-direction: column;
+}
+
+/* Activity Grid */
+.activity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    /* 6 Rows to fit all activities? */
+    gap: 8px;
+    width: 100%;
+    height: 100%;
 }
 
 .activity-btn {
-    /* aspect-ratio removed to allow height shrinking */
-    border-radius: 20px;
+    border-radius: 16px;
     background: #ffffff;
     border: 1px solid #e5e5ea;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    overflow: visible !important;
     position: relative;
-    z-index: 1;
 }
 
 .activity-btn img {
-    width: 90%;
-    height: 90%;
+    width: 60%;
+    /* Reasonable size */
+    height: 60%;
     object-fit: contain;
-    opacity: 0.85;
-    transform: scale(1.5);
-    /* Massive zoom per user request */
+    opacity: 0.8;
 }
 
 .activity-btn.active {
@@ -226,310 +119,160 @@ body.settings-active .main-panel {
     opacity: 1;
 }
 
-/* --- Focus View --- */
-.focus-view {
+/* Status Dot */
+.status-dot {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    z-index: 50;
-    /* Above activity grid */
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-dot.green {
+    background: #10b981;
+}
+
+.status-dot.orange {
+    background: #f59e0b;
+}
+
+
+/* Measure Panels */
+.measure-container {
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    border: 1px solid #e5e5ea;
 }
 
-.close-btn {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    background: none;
-    border: none;
-    font-size: 32px;
-    color: #ccc;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.focus-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 30px;
+/* Settings Panel */
+.settings-container {
     width: 100%;
-}
-
-
-
-.focus-icon-wrapper {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.focus-icon-wrapper img {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-}
-
-.focus-timer-block {
-    width: 100%;
-    max-width: 320px;
-    padding: 20px;
-    border-radius: 20px;
-    color: white;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.focus-timer-block.green-block {
-    background: #468e40;
-}
-
-.focus-timer-block.orange-block {
-    background: #f07c10;
-}
-
-.focus-label {
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    opacity: 0.9;
-    margin-bottom: 5px;
-}
-
-.focus-timer {
-    display: block;
-    font-size: 48px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Reduce size slightly for the second timer as requested */
-.focus-timer-block.orange-block {
-    max-width: 180px;
-    /* Reduced from 320px (~55%) */
+    height: 100%;
+    overflow-y: auto;
     padding: 10px;
-    /* Reduced padding */
-    margin-top: 10px;
-    /* Add some spacing */
 }
 
-.focus-timer-block.orange-block .focus-timer {
-    font-size: 32px;
-    /* Compromise size to fit in smaller box */
-}
-
-/* --- Side Panels --- */
-.side-panel,
-.left-panel {
-    /*border: 1px solid green;*/
-    padding: 0;
+/* Area 3: Timer Area (10%) */
+.timer-area {
+    height: 10%;
     display: flex;
-    justify-content: center;
-    height: 100%;
-    /* Fill grid cell */
-    overflow: hidden;
-}
-
-.left-panel {
-    grid-area: left;
-}
-
-.side-panel {
-    grid-area: side;
-}
-
-/* Timeline Background Wrapper (Transparent now) */
-.timeline-background {
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    /* Removed Peach bg */
-    border-radius: 0;
-    display: flex;
-    justify-content: center;
-    padding: 0;
-}
-
-.timeline-visual {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    gap: 10px;
+    padding: 5px 15px;
     align-items: center;
-    justify-content: space-between;
-    padding-bottom: 0px;
-    /* Protect bottom icon */
-}
-
-.timeline-track {
-    flex: 1;
-    width: 100%;
-    /* Fill panel width */
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 15px;
-    /* Rounded pill */
-    overflow: hidden;
-    /* Clip inner bar */
-    position: relative;
-    margin: 5px 0;
-}
-
-.timeline-progress {
-    width: 100%;
-    /* Sun raise (orange) - mid day (silver) - evening (orange) - Night (black) */
-    background: linear-gradient(to bottom, #ff9500, #e5e5ea, #ff9500, #000000);
-    border-radius: 15px;
-    /* Height set by JS */
-    min-height: 0%;
-    max-height: 100%;
-}
-
-.timeline-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.5;
-}
-
-.timeline-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.track-marker {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.track-marker img {
-    width: 100%;
-    height: 100%;
-    opacity: 0.3;
-}
-
-.marker-noon {
-    top: 50%;
-}
-
-.marker-evening {
-    top: 75%;
-}
-
-/* --- Bottom Section (Timers + Nav) --- */
-.bottom-section {
-    grid-area: bottom;
-    position: relative;
-    height: auto;
-    width: 100%;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    /* Gap handled by margins/padding */
-    padding: 0;
-    padding-top: 10px;
-    background: #ffffff;
-    z-index: 100;
-    box-shadow: none !important;
-    border-radius: 0;
-}
-
-/* PWA-specific styles removed - now handled above */
-
-/* Timers Row */
-.timers-capsule {
-    display: flex;
-    gap: 12px;
-    height: 76px;
-    margin: 0 16px 12px 16px;
-    /* Spacing handled here */
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
 }
 
 .timer-pill {
     flex: 1;
-    border-radius: 16px;
+    height: 100%;
+    border-radius: 12px;
+    /* Slightly less rounded */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: 700;
-    font-size: 34px;
-    /* Increased from 24px */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    position: relative;
-    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .green-pill {
     background: #468e40;
-    /* Forest Green */
 }
 
 .orange-pill {
     background: #f07c10;
-    /* Pumpkin Orange */
 }
 
 .timer-label-overlay {
-    font-size: 15px;
-    /* Increased from 13px */
-    font-weight: 700;
-    opacity: 0.95;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0px;
+    opacity: 0.9;
+    margin-bottom: 2px;
 }
 
-/* Bottom Nav */
-.bottom-nav {
+#currentActivityTimer,
+#dayTimer {
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Area 4: Progress Area (12%) */
+.progress-area {
+    height: 12%;
     display: flex;
-    justify-content: space-around;
-    align-items: center;
-    /* Align buttons to middle/center */
-    background: #1c1c1e;
-    height: auto;
-    /* Allow growth for safe area */
-    border-radius: 0;
-    /* Docked - no corners */
-    padding: 20px 10px 25px 10px;
-    /* Top 20, Bottom 25 - Visually Centered/Bottom-ish */
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-    width: 100%;
+    flex-direction: column;
+    padding: 5px 15px;
+    gap: 6px;
+    justify-content: center;
+    border-top: 1px solid #f0f0f0;
 }
 
-.nav-btn {
-    background: none;
-    border: none;
-    height: 64px;
-    /* Fixed height for hit area */
-    flex: 1;
+.progress-bar-container {
+    width: 100%;
+    height: 48%;
+    /* Split height */
+    background: #e5e5ea;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    /* Center text */
+    white-space: nowrap;
+    overflow: visible;
+    /* Allow text to be seen even if bar is small */
+}
+
+/* Colors specifically requested: Plain, no gradient */
+/* "Today" - Orange */
+.todays-progress {
+    background: #f07c10;
+}
+
+/* "Life" - Green (or customizable?) Using Green as per "Life" context usually */
+.life-progress {
+    background: #468e40;
+}
+
+.progress-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1c1c1e;
+    /* Dark text for contrast on light bg, or check bar color */
+    z-index: 2;
+    line-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Area 5: Navigation Area (9%) */
+.navigation-area {
+    height: 9%;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: #f9f9f9;
+    /* Light grey distinction */
+    border-top: 1px solid #e5e5ea;
+    padding-bottom: 5px;
+    /* Visual balance */
 }
 
 .nav-btn {
@@ -544,139 +287,226 @@ body.settings-active .main-panel {
 }
 
 .nav-btn img {
-    width: 36px;
-    height: 36px;
-    filter: invert(0.6);
-    transition: filter 0.2s;
+    width: 28px;
+    height: 28px;
+    opacity: 0.4;
+    transition: all 0.2s;
 }
 
 .nav-btn.active img {
-    filter: invert(1);
+    opacity: 1;
     transform: scale(1.1);
+    filter: brightness(0);
+    /* Black active state */
 }
 
-/* --- Activity Settings --- */
-.settings-row {
+
+/* --- Monitor / Tab Styles --- */
+.monitor-view {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    padding: 10px;
-    background: #ffffff;
-    border: 1px solid #000;
-    margin-bottom: 10px;
+    padding: 10px 5px;
+    overflow-y: auto;
+    flex: 1;
 }
 
-.settings-icon {
-    width: 32px;
-    height: 32px;
+.tab-navigation {
     display: flex;
-    align-items: center;
     justify-content: center;
+    gap: 10px;
+    padding: 5px 0;
+    flex-shrink: 0;
 }
 
-.settings-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+.tab-btn {
+    background: #f2f2f7;
+    border: none;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e8e93;
+    cursor: pointer;
+    border-radius: 16px;
 }
 
-.settings-name {
-    flex: 2;
-    min-width: 0;
+.tab-btn.active {
+    background: #000000;
+    color: #ffffff;
 }
 
-.settings-time {
-    width: 80px;
-    text-align: center;
-}
-
-.settings-duration {
-    width: 50px;
-    text-align: center;
-}
-
-/* --- Start to End Settings --- */
-.ste-section {
-    margin-top: 30px;
-    border: 1px solid #1c3d5a;
-    border-radius: 20px;
-    padding: 25px 20px 20px 20px;
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.ste-title {
-    position: absolute;
-    top: -12px;
-    left: 20px;
-    background: var(--bg-color);
-    padding: 0 8px;
-    font-size: 16px;
-    color: #1c3d5a;
-    font-weight: 500;
-}
-
-.ste-row {
+.activity-row {
     display: flex;
     align-items: center;
-    margin-bottom: 15px;
-    font-size: 16px;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid transparent;
 }
 
-.ste-row:last-child {
-    margin-bottom: 0;
+.activity-row.tracked {
+    border-left-color: #10b981;
 }
 
-.ste-label {
-    width: 100px;
-    font-weight: normal;
+.activity-row.not-tracked {
+    border-left-color: #ef4444;
+    opacity: 0.6;
 }
 
-.ste-input {
-    padding: 6px 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    width: 150px;
-    border-radius: 4px;
+.activity-row-icon {
+    width: 28px;
+    height: 28px;
 }
 
-.ste-input-small {
-    padding: 6px 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    width: 70px;
-    margin-right: 10px;
-    border-radius: 4px;
+.activity-row-details {
+    flex: 1;
 }
 
-/* Life Progress Visual */
-.life-progress-bar {
-    width: 100%;
-    /* Baby (top, green) to Old (bottom, red) */
-    background: linear-gradient(to bottom, #4cd964, #ff3b30);
+.activity-row-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.activity-row-info {
+    font-size: 12px;
+    color: #666;
+}
+
+
+/* --- Focus View --- */
+.focus-view {
     position: absolute;
     top: 0;
     left: 0;
-    transition: height 0.5s ease;
-    border-radius: 15px;
-    /* Height set by JS */
+    right: 0;
+    bottom: 0;
+    background: #ffffff;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
 }
 
-.life-progress-text {
+.close-btn {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-90deg);
-    white-space: nowrap;
-    font-size: 24px;
-    /* ~80% of 30px panel width */
-    font-weight: 700;
-    color: #1c3d5a;
-    z-index: 2;
-    pointer-events: none;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #ccc;
+    cursor: pointer;
 }
 
-/* --- Slide-to-Confirm Modal --- */
+.focus-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* Ensure vertical centering too */
+    width: 100%;
+    gap: 20px;
+    text-align: center;
+    /* Ensure text/inline elements are centered */
+}
+
+.focus-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    /* Explicitly center the image */
+    width: 100%;
+}
+
+.focus-icon-wrapper img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+}
+
+.focus-timer-block {
+    width: 100%;
+    max-width: 280px;
+    padding: 15px;
+    border-radius: 16px;
+    color: white;
+    text-align: center;
+}
+
+.focus-timer-block.green-block {
+    background: #468e40;
+}
+
+.focus-timer {
+    display: block;
+    font-size: 42px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.focus-timer-block.orange-block {
+    display: none;
+    /* Hide 2nd timer in focus view since it's now always visible below */
+}
+
+
+/* --- Settings Specific --- */
+.settings-section {
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.settings-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #000;
+}
+
+.settings-group {
+    margin-bottom: 10px;
+}
+
+.settings-label {
+    display: block;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.settings-date-row {
+    display: flex;
+    gap: 10px;
+}
+
+.settings-date-group {
+    flex: 1;
+}
+
+.update-btn {
+    width: 100%;
+    padding: 12px;
+    background: #007aff;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* --- Slide-to-Confirm Modal (Keep existing) --- */
 .confirm-modal {
     position: fixed;
     top: 0;
@@ -692,56 +522,25 @@ body.settings-active .main-panel {
 }
 
 .confirm-card {
-    background: #ffffff;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 24px;
-    padding: 30px 20px;
+    background: #fff;
+    width: 85%;
+    max-width: 350px;
+    border-radius: 20px;
+    padding: 25px 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
-    position: relative;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    gap: 15px;
 }
 
-
-.confirm-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-}
-
-.confirm-icon-wrapper img {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-}
-
-.confirm-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.confirm-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1c1c1e;
-}
-
-/* Slider Component */
+/* Re-use existing slider styles roughly */
 .slider-container {
     width: 100%;
-    height: 60px;
+    height: 55px;
     background: #e5e5ea;
-    border-radius: 30px;
+    border-radius: 27px;
     position: relative;
     overflow: hidden;
-    user-select: none;
-    touch-action: none;
-    /* Prevent scroll while dragging */
 }
 
 .slider-track {
@@ -755,26 +554,20 @@ body.settings-active .main-panel {
 .slider-text {
     color: #8e8e93;
     font-weight: 600;
-    font-size: 16px;
-    pointer-events: none;
-    transition: opacity 0.2s;
 }
 
 .slider-handle {
     position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 52px;
-    height: 52px;
+    top: 3px;
+    left: 3px;
+    width: 49px;
+    height: 49px;
     border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: grab;
-    transition: transform 0.1s linear;
-    /* Smooth drag */
     z-index: 10;
 }
 
@@ -784,207 +577,80 @@ body.settings-active .main-panel {
     opacity: 0.5;
 }
 
-.slider-handle:active {
-    cursor: grabbing;
-    transform: scale(1.05);
-}
-
-/* Modal Timer Overrides */
-#confirmCurrentBlock,
-#confirmDayBlock {
-    width: 100%;
-    max-width: 100%;
-    padding: 15px;
-}
-
-#confirmDayBlock {
-    margin-top: 0;
-    background: #f07c10;
-}
-
-/* Status Dots for Activities */
-.status-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    z-index: 100 !important;
-    /* High z-index to ensure visibility */
-}
-
-.status-dot.green {
-    background-color: #4cd964;
-    /* iOS Green */
-}
-
-.status-dot.orange {
-    background-color: #ff9500;
-    /* iOS Orange */
-}
-
-/* --- Sadhana Focus View --- */
-.sadhana-container {
-    width: 100%;
+.confirm-icon-wrapper {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 30px;
-    margin-bottom: 20px;
-}
-
-.sadhana-buttons {
-    display: flex;
     gap: 15px;
-    justify-content: center;
+    margin-bottom: 10px;
 }
 
-.sadhana-btn {
-    width: 70px;
-    height: 70px;
-    background: #ffffff;
-    border: 3px solid transparent;
-    border-radius: 4px;
-    /* Slightly squared based on icon */
-    padding: 5px;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.sadhana-btn img {
-    width: 100%;
-    height: 100%;
+.confirm-icon-wrapper img {
+    width: 50px;
+    height: 50px;
     object-fit: contain;
 }
 
-.sadhana-btn.active {
-    border-color: #f07c10;
-    /* Orange highlight */
-    transform: scale(1.05);
+.confirm-title {
+    font-size: 16px;
+    font-weight: 600;
 }
 
-.media-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    background: #f2f2f7;
-    padding: 10px 20px;
-    border-radius: 30px;
-}
-
-.media-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #8e8e93;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    transition: background 0.2s;
-}
-
-.media-btn:active {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.play-pause-btn {
-    font-size: 32px;
-    color: #1c1c1e;
-    /* Darker key color */
-}
-
-/* Sadhguru Quote Overlay */
+/* Quote Overlay */
 .quote-overlay {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    background: #ffffff;
-    /* Solid white background matching Focus View */
-    z-index: 2000;
-    /* Above focus view */
-    display: none;
-    /* Hidden by default */
-    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
     align-items: center;
+    justify-content: center;
+    z-index: 9999;
     animation: fadeIn 0.3s ease;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e5ea;
 }
 
 .quote-card {
-    /* Removed card styling since overlay itself is now the card */
-    background: transparent;
-    padding: 20px;
-    border-radius: 0;
-    box-shadow: none;
-    max-width: 90%;
-    width: 100%;
-    /* Take full width of container */
-    height: 100%;
+    background: #fff;
+    width: 90%;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 20px;
     text-align: center;
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    /* Center vertically */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 .quote-close-btn {
     position: absolute;
     top: 10px;
     right: 15px;
-    font-size: 24px;
     background: none;
     border: none;
+    font-size: 28px;
     cursor: pointer;
-    color: #ccc;
-    z-index: 10;
-}
-
-.quote-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
+    color: #999;
 }
 
 .quote-author-img {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
+    margin-bottom: 15px;
     object-fit: cover;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .quote-text {
-    font-family: serif;
-    font-size: 28px;
-    /* increased from 20px */
-    line-height: 1.5;
-    color: #333;
-    font-style: italic;
-    margin: 15px 0;
+    font-size: 24px;
     font-weight: 500;
+    font-style: italic;
+    color: #333;
+    margin-bottom: 20px;
+    line-height: 1.4;
 }
 
 .quote-sign-img {
     width: 120px;
-    height: auto;
-    object-fit: contain;
-    margin-top: 10px;
     opacity: 0.8;
 }
 
@@ -998,89 +664,80 @@ body.settings-active .main-panel {
     }
 }
 
-/* Settings Layout */
-.settings-container {
+/* --- Sadhana Controls --- */
+.sadhana-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-    height: 100%;
-    overflow-y: auto;
-}
-
-.settings-section {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 15px;
-    border: 1px solid #e0e0e0;
-}
-
-.settings-header {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #333;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 8px;
-}
-
-.settings-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.settings-label {
-    font-size: 14px;
-    color: #666;
-    font-weight: 500;
-}
-
-.settings-input {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 14px;
+    align-items: center;
     width: 100%;
-    box-sizing: border-box;
-}
-
-.settings-date-row {
-    display: flex;
     gap: 15px;
+    /* Separation between Buttons and Media Controls */
+    margin-top: 10px;
 }
 
-.settings-date-group {
-    flex: 1;
+.sadhana-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    gap: 20px;
+    justify-content: center;
 }
 
-/* Version Section Specifics */
-.version-display {
-    text-align: center;
-    color: #888;
-    font-size: 13px;
-    margin-bottom: 15px;
-}
-
-.update-btn {
-    background: #ff9500;
-    color: white;
-    border: none;
-    padding: 12px;
+.sadhana-btn {
+    width: 70px;
+    /* Bigger buttons for Sadhana modes */
+    height: 70px;
     border-radius: 12px;
-    font-weight: 600;
-    width: 100%;
+    border: 2px solid #e5e5ea;
+    background: #fff;
+    padding: 5px;
     cursor: pointer;
-    margin-bottom: 10px;
+    transition: all 0.2s;
 }
 
-.settings-note {
-    font-size: 12px;
-    color: #999;
-    text-align: center;
-    line-height: 1.4;
+.sadhana-btn.active {
+    border-color: #000000;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.sadhana-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.media-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #f2f2f7;
+    padding: 10px 20px;
+    border-radius: 30px;
+}
+
+.media-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #007aff;
+    border-radius: 50%;
+}
+
+.media-btn:active {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.play-pause-btn {
+    font-size: 24px;
+    background: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 44px;
+    height: 44px;
+    color: #000;
 }

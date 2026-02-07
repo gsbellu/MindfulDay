@@ -1,7 +1,7 @@
 {
     "name": "MindfulDay",
     "short_name": "Mindful",
-    "start_url": "./index.html?v=2.1",
+    "start_url": "./",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#ffffff",
@@ -9,12 +9,14 @@
         {
             "src": "lotus-icon.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "lotus-icon.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ]
 }

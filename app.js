@@ -4,28 +4,150 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V38-07.02.2026-06:17 PM";
+const ClientVersion = "V40-07.02.2026-08:31 PM";
 
 // Correct SVG List
 const DEFAULT_ACTIVITIES = [
-    { "id": "wakeup", "label": "Wake Up", "icon": "wake-up_activity.svg", "duration": 10 },
-    { "id": "bath", "label": "Bath", "icon": "bath_activity.svg", "duration": 30 },
-    { "id": "meds", "label": "Meds", "icon": "ayurveda_activity.svg", "duration": 0 },
-    { "id": "sadhana", "label": "Sadhana", "icon": "sadhana_activity.svg", "duration": 0 },
-    { "id": "exercise", "label": "Exercise", "icon": "exercise_activity.svg", "duration": 0 },
-    { "id": "groom", "label": "Groom", "icon": "groom_activity.svg", "duration": 15 },
-    { "id": "dressup", "label": "Dress-up", "icon": "dress-up_activity.svg", "duration": 15 },
-    { "id": "eat", "label": "Eat", "icon": "eat_activity.svg", "duration": 20 },
-    { "id": "drive", "label": "Drive", "icon": "drive_activity.svg", "duration": 0 },
-    { "id": "work", "label": "Work", "icon": "office-work_activity.svg", "duration": 0 },
-    { "id": "chat", "label": "Chat", "icon": "chat_activity.svg", "duration": 0 },
-    { "id": "coffee", "label": "Coffee", "icon": "coffee-break_activity.svg", "duration": 0 },
-    { "id": "fun", "label": "Fun", "icon": "entertainment_activity.svg", "duration": 0 },
-    { "id": "learn", "label": "Learn", "icon": "read_activity.svg", "duration": 0 },
-    { "id": "walk", "label": "Walk", "icon": "walk_activity.svg", "duration": 0 },
-    { "id": "relax", "label": "Relax", "icon": "relax_activity.svg", "duration": 0 },
-    { "id": "sleep", "label": "Sleep", "icon": "sleep_activity.svg", "duration": 360 }
+    {
+        "id": "wakeup",
+        "label": "Wake Up",
+        "icon": "wake-up_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "bath",
+        "label": "Bath",
+        "icon": "bath_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "meds",
+        "label": "Meds",
+        "icon": "ayurveda_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "sadhana",
+        "label": "Sadhana",
+        "icon": "sadhana_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "exercise",
+        "label": "Exercise",
+        "icon": "exercise_activity.svg",
+        "duration": 10
+    },
+    {
+        "id": "groom",
+        "label": "Groom",
+        "icon": "groom_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "family-time",
+        "label": "Family Time",
+        "icon": "family-time_activity.svg",
+        "duration": 15
+    },
+    {
+        "id": "dressup",
+        "label": "Dress-up",
+        "icon": "dress-up_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "eat",
+        "label": "Eat",
+        "icon": "eat_activity.svg",
+        "duration": 10
+    },
+    {
+        "id": "drive",
+        "label": "Drive",
+        "icon": "drive_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "work",
+        "label": "Work",
+        "icon": "office-work_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "chat",
+        "label": "Chat",
+        "icon": "chat_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "coffee",
+        "label": "Coffee",
+        "icon": "coffee-break_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "fun",
+        "label": "Fun",
+        "icon": "entertainment_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "learn",
+        "label": "Learn",
+        "icon": "read_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "walk",
+        "label": "Walk",
+        "icon": "walk_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "relax",
+        "label": "Relax",
+        "icon": "relax_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "sleep",
+        "label": "Sleep",
+        "icon": "sleep_activity.svg",
+        "duration": 360
+    }
 ];
+
+// PWA Install Prompt
+let deferredPrompt;
+window.pwaDebugLog = window.pwaDebugLog || [];
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    window.pwaDebugLog.push(new Date().toLocaleTimeString() + ': beforeinstallprompt fired!');
+
+    // Update UI
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (installBtn) installBtn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+    window.pwaDebugLog.push(new Date().toLocaleTimeString() + ': App Installed');
+    deferredPrompt = null;
+});
+
+async function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    deferredPrompt = null;
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (installBtn) {
+        installBtn.style.display = 'none';
+    }
+}
 
 let state = {
     currentActivityId: null,
@@ -473,8 +595,12 @@ function confirmStart(activity) {
         // The user says "When Sadhana activity starts...". 
         // Let's assume on "Switch".
 
-        // Show Focus Mode for Wake Up too
-        showFocusMode(activity);
+        // Show Focus Mode only for Sadhana
+        if (activity.id === 'sadhana') {
+            showFocusMode(activity);
+        } else {
+            hideFocusMode();
+        }
 
         // Show Quote Overlay with slight delay to appear "after" switch
         // Show Quote Overlay with minimal delay (next tick) to ensure DOM update
@@ -523,8 +649,12 @@ function confirmStart(activity) {
     renderActivities();
     saveState();
 
-    // Show Focus Mode on new activity click
-    showFocusMode(activity);
+    // Show Focus Mode only for Sadhana
+    if (activity.id === 'sadhana') {
+        showFocusMode(activity);
+    } else {
+        hideFocusMode();
+    }
 
     // Show Quote Overlay with slight delay
     // Show Quote Overlay with minimal delay (next tick)
@@ -602,6 +732,12 @@ function renderSadhanaView(container) {
         standardIcon.style.display = 'block';
     }
 
+    // Hide the redundant timer block in Sadhana view
+    const timerBlock = container.querySelector('.focus-timer-block');
+    if (timerBlock) {
+        timerBlock.style.display = 'none';
+    }
+
     // Check if controls already exist
     let controls = document.getElementById('sadhanaControls');
     if (!controls) {
@@ -609,11 +745,9 @@ function renderSadhanaView(container) {
         controls.id = 'sadhanaControls';
         controls.className = 'sadhana-container';
 
-        // Insert after icon wrapper
-        const iconWrapper = container.querySelector('.focus-icon-wrapper');
-        if (iconWrapper) {
-            iconWrapper.appendChild(controls);
-        }
+        // Insert at the end of the container (Focus Content)
+        // This ensures it sits BELOW the icon wrapper
+        container.appendChild(controls);
     }
 
     controls.style.display = 'flex';
@@ -715,13 +849,20 @@ function updateSadhanaUI() {
         }
     }
 
+    // Update Green Pill Label too
+    const activityLabel = document.getElementById('currentActivityLabel');
+    if (activityLabel) {
+        if (state.sadhanaMode) {
+            activityLabel.textContent = state.sadhanaMode.toUpperCase();
+        } else {
+            activityLabel.textContent = 'SADHANA';
+        }
+    }
+
     // Highlight Active Button
     const btns = document.querySelectorAll('.sadhana-btn');
     btns.forEach(btn => {
         // logic to verify which button corresponds to state.sadhanaMode
-        // Simpler: checking src relative path is flaky. 
-        // Better: add data attributes or ID logic. 
-        // For now, based on onclick string matching which is sloppy but works for simple DOM
         const mode = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
         if (mode === state.sadhanaMode) {
             btn.classList.add('active');
@@ -748,6 +889,9 @@ function updateSadhanaUI() {
 }
 
 function hideFocusMode() {
+    // Stop Audio if running
+    stopSadhanaAudio();
+
     const focusView = document.getElementById('focusView');
     const activityGrid = document.getElementById('activityGrid');
 
@@ -858,7 +1002,7 @@ function updateTimeline() {
 
     const bar = document.getElementById('timelineProgress');
     if (bar) {
-        bar.style.height = `${percentage}%`;
+        bar.style.width = `${percentage}%`; // Horizontal
     }
 }
 
@@ -901,48 +1045,81 @@ function switchMode(mode) {
     const measurePanel = document.getElementById('measurePanel');
     const settingsPanel = document.getElementById('settingsPanel');
 
-    // Side Panel Visibility
-    const sidePanel = document.querySelector('.side-panel');
-    const timers = document.querySelector('.timers-capsule');
+    // Reset All Main Area Content
+    const grid = document.getElementById('activityGrid');
+    if (grid) grid.style.display = 'none';
+    if (measurePanel) measurePanel.style.display = 'none';
+    if (settingsPanel) settingsPanel.style.display = 'none';
 
-    // Reset All
-    mainPanel.style.display = 'none';
-    measurePanel.style.display = 'none';
-    settingsPanel.style.display = 'none';
+    // Hide Focus View if switching modes (unless we want to persist it? usually switching implies leaving activity view)
+    // Actually, user might want to check settings while timer runs. 
+    // But for now, let's just show the target panel.
+    const focusView = document.getElementById('focusView');
+    if (focusView) focusView.style.display = 'none';
 
     switch (mode) {
         case 'run':
-            document.body.classList.remove('settings-active');
-            mainPanel.style.display = 'flex';
-            if (sidePanel) sidePanel.style.display = 'flex';
-            if (timers) timers.style.visibility = 'visible';
-
-            // Ensure View
-            const grid = document.getElementById('activityGrid');
-            const focus = document.getElementById('focusView');
-            // If we are in focus mode, keep it. Else show grid.
-            if (focus && focus.style.display === 'flex') {
-                grid.style.display = 'none';
+            // Logic: If activity is running, show Focus View? Or just grid?
+            // "Run" usually means the main activity selection or current activity.
+            if (state.currentActivityId && focusView && state.currentActivityId !== 'sadhana') { // Sadhana has its own logic?
+                // Actually, let's simple show grid, and let click handling show focus.
+                // Or if persistent?
+                // For simplicity: Show Grid. 
+                if (grid) grid.style.display = 'grid';
+                renderActivities();
             } else {
                 if (grid) grid.style.display = 'grid';
-                renderActivities(); // Ensure content
+                renderActivities();
             }
             break;
 
         case 'measure':
-            measurePanel.style.display = 'flex';
-            if (sidePanel) sidePanel.style.display = 'flex';
-            if (timers) timers.style.visibility = 'visible';
-            renderMonitorView('measureToday');
-            renderMonitorView('measureYesterday');
+            if (measurePanel) {
+                measurePanel.style.display = 'flex';
+                renderMonitorView('measureToday');
+                renderMonitorView('measureYesterday');
+            }
             break;
 
         case 'settings':
-            settingsPanel.style.display = 'flex';
-            if (sidePanel) sidePanel.style.display = 'none';
-            if (timers) timers.style.visibility = 'hidden';
-            showSettings();
+            if (settingsPanel) {
+                settingsPanel.style.display = 'flex'; // Settings now inside main panel
+                showSettings();
+            }
             break;
+    }
+
+    // Trigger Progress Bar Animation
+    // Reset to 0 then restore
+    const timelineBar = document.getElementById('timelineProgress');
+    const lifeBar = document.getElementById('lifeProgressBar');
+
+    // Disable transition temporarily? No, we want the visual shrink then grow? 
+    // Or just grow from 0? 
+    // "Ensure progress bars animate from 0% every time you switch modes."
+    // implying they should start at 0 and grow to current value.
+
+    if (timelineBar) {
+        timelineBar.style.transition = 'none'; // Disable transition for instant reset
+        timelineBar.style.width = '0%';
+        void timelineBar.offsetWidth; // Force reflow
+        timelineBar.style.transition = 'width 0.5s ease'; // Re-enable
+
+        // Slight delay to ensure the 0% is registered before animating
+        setTimeout(() => {
+            updateTimeline();
+        }, 50);
+    }
+
+    if (lifeBar) {
+        lifeBar.style.transition = 'none';
+        lifeBar.style.width = '0%';
+        void lifeBar.offsetWidth;
+        lifeBar.style.transition = 'width 0.5s ease';
+
+        setTimeout(() => {
+            updateLifeProgress();
+        }, 50);
     }
 }
 
@@ -977,7 +1154,48 @@ function renderSettings() {
 
 // Removed old renderAllSettings calls and definitions as they are replaced by renderSettings
 function renderAllSettings() { } // Stub or remove
-function renderGeneralSettings() { }
+async function renderGeneralSettings() {
+    // Show 'Loading...' initially? Or just await?
+
+    let serverVer = "Unknown";
+    try {
+        serverVer = await getServerVersion();
+    } catch (e) { console.warn("Version fetch failed", e); }
+
+    // Use ClientVersion from top of file
+    const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
+
+    // Button style: Grey if disabled, Blue if enabled
+    const btnColor = isMismatch ? '#007aff' : '#ccc';
+    const btnText = isMismatch ? 'Update' : 'Up to Date';
+    const btnDisabled = isMismatch ? '' : 'disabled';
+
+    const settingsContent = document.getElementById('settingsContent');
+    if (!settingsContent) return;
+
+    settingsContent.innerHTML = `
+        <div style="padding: 10px; text-align: center; margin-top: 10px;">
+            <h3>MindfulDay</h3>
+            
+            <div style="margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 10px; text-align: left;">
+                <p style="margin: 5px 0;"><strong>Client Version:</strong> <br><span style="color: #007aff;">${ClientVersion}</span></p>
+                <p style="margin: 5px 0; border-top: 1px solid #ccc; padding-top: 5px;"><strong>Server Version:</strong> <br><span style="color: ${isMismatch ? '#ff9500' : '#34c759'};">${serverVer}</span></p>
+            </div>
+
+            <button onclick="performUpdate()" 
+                    id="updateBtn"
+                    ${btnDisabled}
+                    style="width: 100%; padding: 12px; background: ${btnColor}; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 20px;">
+                ${btnText}
+            </button>
+
+            <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
+                    style="width: 100%; padding: 12px; background: #ff3b30; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                ⚠️ Reset App Data
+            </button>
+        </div>
+    `;
+}
 // Cleanup complete
 
 // Cleanup step 2 complete
@@ -989,7 +1207,10 @@ function setupTabs() {
     tabs.forEach(tab => {
         tab.onclick = () => {
             const targetId = tab.dataset.target;
-            const container = tab.closest('.main-panel');
+            // Use closest measure-container or fallback to document query if needed, 
+            // but measure-container is the parent of the tab nav.
+            let container = tab.closest('.measure-container');
+            if (!container) container = document; // Fallback
 
             // Update Buttons
             container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1003,9 +1224,20 @@ function setupTabs() {
                     content.style.display = 'none';
                 }
             });
+
+            // If switching to yesterday, force render to ensure data shows
+            if (targetId === 'measureYesterday') {
+                renderMonitorView('measureYesterday');
+            }
         };
     });
 }
+window.hideQuoteOverlay = function () {
+    const overlay = document.getElementById('quoteOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+};
 
 // --- Versioning & Update Logic ---
 
@@ -1141,46 +1373,8 @@ function registerServiceWorker() {
     }
 }
 
-function updateLifeProgress() {
-    const bar = document.getElementById('lifeProgress');
-    const label = document.getElementById('lifeProgressText');
-
-    if (!state.startToEnd || !state.startToEnd.bornOn || !state.startToEnd.endAt) {
-        if (label) label.textContent = '';
-        return;
-    }
-
-    try {
-        const parts = state.startToEnd.bornOn.split('-');
-        if (parts.length !== 3) return;
-
-        const born = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-        const endYears = parseInt(state.startToEnd.endAt);
-        const end = new Date(born);
-        end.setFullYear(born.getFullYear() + endYears);
-
-        const now = new Date();
-        const totalMs = end.getTime() - born.getTime();
-        const elapsedMs = now.getTime() - born.getTime();
-
-        let pct = (elapsedMs / totalMs) * 100;
-        if (pct < 0) pct = 0;
-        if (pct > 100) pct = 100;
-
-        if (bar) {
-            bar.style.height = `${pct}%`;
-        }
-
-        const remainingMs = end.getTime() - now.getTime();
-        const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
-
-        if (label) {
-            label.textContent = `${remainingDays} days to live`;
-        }
-    } catch (e) {
-        console.warn('Life calculation error', e);
-    }
-}
+// Consolidated/Removed duplicate updateLifeProgress - see the one at the bottom
+function updateLifeProgress_OLD_REMOVED() { }
 
 // --- Slide-to-Confirm Logic ---
 
@@ -1408,44 +1602,34 @@ function showQuoteOverlay() {
     if (!pool || pool.length === 0) {
         console.warn("Using fallback quotes");
         pool = [
-            "How deeply you touch another life is how rich your life is.",
-            "You cannot exist without the universe. You are not a separate existence.",
-            "Learning is not about earning, but a way of flowering."
+            { text: "How deeply you touch another life is how rich your life is." },
+            { text: "You cannot exist without the universe. You are not a separate existence." },
+            { text: "Learning is not about earning, but a way of flowering." }
         ];
     }
 
     const randomQuote = pool[Math.floor(Math.random() * pool.length)];
+    // Handle both object structure and simple string (fallback)
+    const quoteText = randomQuote.text || randomQuote;
 
     let overlay = document.getElementById('quoteOverlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'quoteOverlay';
-        overlay.className = 'quote-overlay';
+    // Ensure overlay exists (should be in HTML now)
+    if (!overlay) return;
 
-        // Inner HTML structure
-        overlay.innerHTML = `
-            <div class="quote-card">
-                <button class="quote-close-btn" onclick="hideQuoteOverlay()">×</button>
-                <div class="quote-content">
-                    <img src="./icons/sadhguru.png" alt="Sadhguru" class="quote-author-img">
-                    <p class="quote-text">“${randomQuote}”</p>
-                    <img src="./icons/sadhguru-sign.png" alt="Sadhguru Signature" class="quote-sign-img">
-                </div>
-            </div>
-        `;
-        document.getElementById('mainPanel').appendChild(overlay);
+    const textEl = document.getElementById('quoteText');
+    const authorImg = document.getElementById('quoteAuthorImg');
+    const signImg = document.getElementById('quoteSignImg');
 
-        // Remove local onclick as we are using global now
-    } else {
-        // Update content if already exists
-        const textEl = overlay.querySelector('.quote-text');
-        if (textEl) textEl.textContent = `“${randomQuote}”`;
-    }
+    if (textEl) textEl.textContent = `“${quoteText}”`;
+
+    // Explicitly set images every time
+    if (authorImg) authorImg.src = './icons/sadhguru.png';
+    if (signImg) signImg.src = './icons/sadhguru-sign.png';
 
     // Force display and higher z-index inline to debug
     overlay.style.display = 'flex';
     overlay.style.zIndex = '99999';
-    console.log("Showing Quote Overlay:", randomQuote);
+    console.log("Showing Quote Overlay:", quoteText);
 
     // Auto close after 20 seconds
     if (window.quoteTimeout) clearTimeout(window.quoteTimeout);
@@ -1456,14 +1640,21 @@ function showQuoteOverlay() {
     // Global click listener to close on ANY click (even outside the overlay)
     // Add small delay to prevent immediate triggering if created by a click
     setTimeout(() => {
-        document.addEventListener('click', window.hideQuoteOverlay);
+        // Use a named function reference so we can remove it later if needed, 
+        // but window.hideQuoteOverlay handles the hiding.
+        // We'll just one-off this.
+        const clickHandler = () => {
+            hideQuoteOverlay();
+            document.removeEventListener('click', clickHandler);
+        };
+        document.addEventListener('click', clickHandler);
     }, 100);
 }
 
 
 // --- Settings Mode Logic ---
 
-function showSettings() {
+async function showSettings() {
     state.settingsMode = true;
     document.body.classList.add('settings-active');
 
@@ -1474,6 +1665,18 @@ function showSettings() {
     const msg = localStorage.getItem('countdownMsg') || "? Days to Retirement";
     const start = localStorage.getItem('countdownStart') || "";
     const end = localStorage.getItem('countdownEnd') || "";
+
+    // Version Logic
+    let serverVer = "Unknown";
+    try {
+        serverVer = await getServerVersion();
+    } catch (e) {
+        console.warn("Version fetch failed", e);
+    }
+    const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
+    const btnColor = isMismatch ? '#007aff' : '#ccc';
+    const btnText = isMismatch ? 'Update Available' : 'Up to Date';
+    // We allow clicking even if up to date to force refresh
 
     container.innerHTML = `
         <div class="settings-section">
@@ -1497,22 +1700,47 @@ function showSettings() {
         </div>
 
         <div class="settings-section">
-            <div class="settings-header">Version</div>
+            <div class="settings-header">App Info</div>
             
-            <div class="version-display">
-                Version: ${window.APP_VERSION || 'Loading...'}
+            <div style="margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 10px;">
+                <p style="margin: 5px 0; font-size:14px;"><strong>Client:</strong> <span style="color: #007aff;">${ClientVersion}</span></p>
+                <p style="margin: 5px 0; font-size:14px; border-top: 1px solid #e0e0e0; padding-top: 5px;"><strong>Server:</strong> <span style="color: ${isMismatch ? '#ff9500' : '#34c759'};">${serverVer}</span></p>
             </div>
             
-            <button class="update-btn" onclick="window.location.reload(true)">
-                Check for Updates / Refresh
+            <div class="settings-section">
+            <div class="settings-header">App Control</div>
+            
+            <!-- PWA Install Button (Hidden by default) -->
+            <button id="pwaInstallBtn" onclick="installPWA()" 
+                    style="width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px;">
+                <i class="ph ph-download-simple" style="font-size: 18px;"></i>
+                Install App
             </button>
-            <div class="settings-note">
-                Activity configuration is now managed via settings_activities.json
+            
+            <!-- Debug Logs -->
+            <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #333; max-height: 100px; overflow-y: auto;">
+                <strong>Debug Log:</strong><br>
+                ${(window.pwaDebugLog || []).length > 0 ? (window.pwaDebugLog || []).join('<br>') : 'No logs yet...'}
+            </div>
+            
+            <br>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button onclick="performUpdate()" 
+                        style="flex: 1; padding: 12px; background: ${btnColor}; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="ph ph-arrows-clockwise" style="font-size: 18px;"></i>
+                    ${btnText}
+                </button>
+
+                <button onclick="if(confirm('Reset all data?')) { localStorage.clear(); alert('Application has been reset.'); location.reload(); }" 
+                        style="flex: 1; padding: 12px; background: #ff3b30; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="ph ph-trash" style="font-size: 18px;"></i>
+                    Reset
+                </button>
             </div>
         </div>
     `;
 
-    // Add listeners for auto-save
     setupCountdownEvents();
 }
 
@@ -1566,37 +1794,24 @@ function updateLifeProgress() {
             // Round up to nearest day
             daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            // If passed, days left could be negative. Show 0? or negative?
-            // "113 days to live" implies future. 
-            // Let's show 0 if passed.
             if (daysLeft < 0) daysLeft = 0;
         } else {
             console.warn("Countdown: End date must be after Start date");
             daysLeft = "Error";
-            // Show error in Settings if open?
         }
-    } else {
-        console.log("Countdown: Missing start or end date", startStr, endStr);
     }
 
-    // Log for debugging
-    console.log("Countdown Update:", { percentage, daysLeft, msg, startStr, endStr });
-
-    // Update Bar - Height is percentage
-    progressBar.style.height = `${percentage}%`;
+    // Update Bar - Width (Horizontal now)
+    progressBar.style.width = `${percentage}%`;
 
     // Update Text (Replace ? with number)
     if (daysLeft === "Error") {
-        progressText.textContent = "Check Dates (Start < End)";
+        progressText.textContent = "Check Dates";
         progressText.style.color = "red";
     } else if (msg.includes('?')) {
         progressText.textContent = msg.replace('?', daysLeft);
         progressText.style.color = ""; // reset
     } else {
-        // Fallback if user removed '?' or just wants to append
-        // But user said "The '?' ... will be replaced". 
-        // If no '?', we can just show the msg as is? Or prefix?
-        // Let's leave msg as is if no '?' found, assuming user customized it fully.
         progressText.textContent = msg;
         progressText.style.color = ""; // reset
     }
