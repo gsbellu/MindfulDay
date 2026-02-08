@@ -112,5 +112,11 @@
         "label": "Sleep",
         "icon": "sleep_activity.svg",
         "duration": 360
+    },
+    {
+        "id": "switch",
+        "label": "Switch",
+        "icon": "switch_activity.svg",
+        "duration": 0
     }
 ]
