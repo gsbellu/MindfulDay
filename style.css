@@ -81,12 +81,12 @@ body {
 /* Activity Grid */
 .activity-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    /* 6 Rows to fit all activities? */
+    /* grid-template-columns and grid-template-rows will be set via JS */
     gap: 8px;
     width: 100%;
     height: 100%;
+    justify-content: center;
+    align-content: center;
 }
 
 .activity-btn {
@@ -99,6 +99,12 @@ body {
     justify-content: center;
     cursor: pointer;
     position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.activity-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .activity-btn img {
@@ -156,7 +162,8 @@ body {
 
 /* Area 3: Timer Area (10%) */
 .timer-area {
-    height: 10%;
+    height: 14%;
+    /* Increased from 10% to consume footer space */
     display: flex;
     gap: 10px;
     padding: 5px 15px;
@@ -188,7 +195,8 @@ body {
 }
 
 .timer-label-overlay {
-    font-size: 11px;
+    font-size: 13px;
+    /* Increased from 11px */
     text-transform: uppercase;
     opacity: 0.9;
     margin-bottom: 2px;
@@ -196,7 +204,8 @@ body {
 
 #currentActivityTimer,
 #dayTimer {
-    font-size: 24px;
+    font-size: 32px;
+    /* Increased from 24px */
     font-variant-numeric: tabular-nums;
 }
 
@@ -252,27 +261,33 @@ body {
     text-align: center;
     font-size: 13px;
     font-weight: 600;
-    color: #1c1c1e;
-    /* Dark text for contrast on light bg, or check bar color */
-    z-index: 2;
+    color: #ffffff !important;
+    /* Force white */
+    z-index: 5;
+    /* Ensure on top */
     line-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
+    text-transform: uppercase;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    /* Visible shadow */
 }
 
 /* Area 5: Navigation Area (9%) */
 .navigation-area {
-    height: 9%;
+    height: 5%;
+    /* Reduced from 9% */
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    /* Bottom aligned */
     justify-content: space-around;
-    background: #f9f9f9;
-    /* Light grey distinction */
-    border-top: 1px solid #e5e5ea;
-    padding-bottom: 5px;
-    /* Visual balance */
+    background: #000000;
+    /* Black background */
+    border-top: none;
+    padding-bottom: 8px;
+    /* Minimal padding */
 }
 
 .nav-btn {
@@ -287,17 +302,21 @@ body {
 }
 
 .nav-btn img {
-    width: 28px;
-    height: 28px;
-    opacity: 0.4;
+    width: 24px;
+    /* Slightly smaller for minimal look */
+    height: 24px;
+    opacity: 0.5;
     transition: all 0.2s;
+    filter: invert(1);
+    /* Make icons white */
 }
 
 .nav-btn.active img {
     opacity: 1;
     transform: scale(1.1);
-    filter: brightness(0);
-    /* Black active state */
+    filter: invert(1);
+    /* Keep white */
+    /* Black active state removed, keeping white */
 }
 
 
@@ -443,7 +462,12 @@ body {
     display: block;
     font-size: 42px;
     font-weight: 600;
+    font-family: "Courier New", Courier, monospace;
+    /* System fallback */
     font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+    /* Mild glow */
 }
 
 .focus-timer-block.orange-block {
@@ -737,7 +761,61 @@ body {
     font-size: 24px;
     background: #ffffff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    width: 44px;
-    height: 44px;
     color: #000;
+}
+
+/* Settings Date Inputs */
+.settings-date-row {
+    display: flex;
+    gap: 15px;
+    /* Space between start and end groups */
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.settings-date-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    /* Allow shrinking */
+}
+
+.settings-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    /* Basic border */
+    border-radius: 8px;
+    /* Rounded corners */
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+    background: #f9f9f9;
+    box-sizing: border-box;
+    /* Include padding in width */
+}
+
+.settings-label {
+    font-size: 14px;
+    color: #333;
+}
+
+/* Settings Container Responsive Layout */
+.settings-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    padding: 5px;
+    /* Minimal internal padding */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+#settingsContent {
+    width: 100%;
+    /* Ensure content fills container */
 }

@@ -24,6 +24,12 @@
         "duration": 0
     },
     {
+        "id": "family-time",
+        "label": "Family Time",
+        "icon": "family-time_activity.svg",
+        "duration": 15
+    },
+    {
         "id": "exercise",
         "label": "Exercise",
         "icon": "exercise_activity.svg",
@@ -34,12 +40,6 @@
         "label": "Groom",
         "icon": "groom_activity.svg",
         "duration": 0
-    },
-    {
-        "id": "family-time",
-        "label": "Family Time",
-        "icon": "family-time_activity.svg",
-        "duration": 15
     },
     {
         "id": "dressup",
@@ -78,27 +78,33 @@
         "duration": 0
     },
     {
-        "id": "fun",
-        "label": "Fun",
-        "icon": "entertainment_activity.svg",
-        "duration": 0
-    },
-    {
         "id": "learn",
         "label": "Learn",
         "icon": "read_activity.svg",
         "duration": 0
     },
     {
-        "id": "walk",
-        "label": "Walk",
-        "icon": "walk_activity.svg",
+        "id": "hobby",
+        "label": "Hobby",
+        "icon": "hobby_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "fun",
+        "label": "Fun",
+        "icon": "entertainment_activity.svg",
         "duration": 0
     },
     {
         "id": "relax",
         "label": "Relax",
         "icon": "relax_activity.svg",
+        "duration": 0
+    },
+    {
+        "id": "walk",
+        "label": "Walk",
+        "icon": "walk_activity.svg",
         "duration": 0
     },
     {

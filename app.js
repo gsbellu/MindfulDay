@@ -4,119 +4,12 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V40-07.02.2026-08:31 PM";
+const ClientVersion = "V43-08.02.2026-03:37 PM";
 
 // Correct SVG List
-const DEFAULT_ACTIVITIES = [
-    {
-        "id": "wakeup",
-        "label": "Wake Up",
-        "icon": "wake-up_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "bath",
-        "label": "Bath",
-        "icon": "bath_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "meds",
-        "label": "Meds",
-        "icon": "ayurveda_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "sadhana",
-        "label": "Sadhana",
-        "icon": "sadhana_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "exercise",
-        "label": "Exercise",
-        "icon": "exercise_activity.svg",
-        "duration": 10
-    },
-    {
-        "id": "groom",
-        "label": "Groom",
-        "icon": "groom_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "family-time",
-        "label": "Family Time",
-        "icon": "family-time_activity.svg",
-        "duration": 15
-    },
-    {
-        "id": "dressup",
-        "label": "Dress-up",
-        "icon": "dress-up_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "eat",
-        "label": "Eat",
-        "icon": "eat_activity.svg",
-        "duration": 10
-    },
-    {
-        "id": "drive",
-        "label": "Drive",
-        "icon": "drive_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "work",
-        "label": "Work",
-        "icon": "office-work_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "chat",
-        "label": "Chat",
-        "icon": "chat_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "coffee",
-        "label": "Coffee",
-        "icon": "coffee-break_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "fun",
-        "label": "Fun",
-        "icon": "entertainment_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "learn",
-        "label": "Learn",
-        "icon": "read_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "walk",
-        "label": "Walk",
-        "icon": "walk_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "relax",
-        "label": "Relax",
-        "icon": "relax_activity.svg",
-        "duration": 0
-    },
-    {
-        "id": "sleep",
-        "label": "Sleep",
-        "icon": "sleep_activity.svg",
-        "duration": 360
-    }
-];
+// Default activities removed. 
+// Now strictly using settings_activities.json as source of truth.
+const DEFAULT_ACTIVITIES = [];
 
 // PWA Install Prompt
 let deferredPrompt;
@@ -157,12 +50,13 @@ let state = {
     history: [],
     yesterday: null, // Stores previous day's data
     activitySettings: null, // Check loadState for initialization
-    quotes: [], // Stores Sadhguru quotes
+    quotes: [], // Stores all Sadhguru quotes
+    quoteBag: [], // For "Shuffle Bag" logic to prevent repeats
     startToEnd: null // { bornOn: '', endAt: '' }
 };
 
 function getActivities() {
-    return state.activitySettings || DEFAULT_ACTIVITIES;
+    return state.activitySettings || [];
 }
 
 // --- Main Initialization ---
@@ -201,6 +95,24 @@ document.addEventListener('DOMContentLoaded', () => {
             hideFocusMode();
         };
     }
+    // Use ResizeObserver for more robust grid resizing handling
+    const grid = document.getElementById('activityGrid');
+    if (grid) {
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                // Only re-render if visible and has size
+                if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                    // Debounce or just call? Rendering is cheap enough here.
+                    // Check if we already have items to render
+                    if (state.activitySettings) {
+                        // requestAnimationFrame to avoid loop limits if it triggers another resize
+                        requestAnimationFrame(() => renderActivities());
+                    }
+                }
+            }
+        });
+        resizeObserver.observe(grid);
+    }
 });
 
 // Fetch activities from JSON file
@@ -215,6 +127,12 @@ function fetchActivitySettings() {
             console.log("Loaded activity settings:", data);
             state.activitySettings = data;
             renderActivities();
+
+            // Restore Label if we have a valid current activity (Fix for missing label on reload)
+            if (state.currentActivityId) {
+                const act = state.activitySettings.find(a => a.id === state.currentActivityId);
+                if (act) updateMetaDisplay(act);
+            }
         })
         .catch(err => {
             console.warn("Could not load settings_activities.json, using defaults.", err);
@@ -334,9 +252,9 @@ function loadState() {
     // We want to force it to load from settings_activities.json or DEFAULT_ACTIVITIES
     state.activitySettings = null;
 
-    // Ensure activitySettings exists (fallback to default immediately for initial paint)
+    // Ensure activitySettings exists (initially empty, waiting for fetch)
     if (!state.activitySettings) {
-        state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+        state.activitySettings = [];
     }
     if (!state.startToEnd) {
         // Default values as requested
@@ -352,7 +270,7 @@ function loadState() {
             state.activitySettings = null;
 
             if (!state.activitySettings) {
-                state.activitySettings = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+                state.activitySettings = [];
             }
             fetchActivitySettings(); // Refetch to be sure
             renderActivities(); // Render defaults then update
@@ -482,7 +400,59 @@ function renderActivities() {
         }
     });
 
-    console.log('Rendering activities:', uniqueActivities.length, uniqueActivities.map(a => a.label));
+    const itemCount = uniqueActivities.length;
+    if (itemCount === 0) return;
+
+    // --- Dynamic Grid Calculation ---
+    // We need to fit 'itemCount' squares into the grid container.
+    // We want to maximize the side length 's'.
+
+    // Get container dimensions
+    // Use getBoundingClientRect to get precise pixels
+    const containerRect = grid.getBoundingClientRect();
+    const W = containerRect.width;
+    const H = containerRect.height;
+    const GAP = 8; // Must match CSS
+
+    let bestCols = 1;
+    let bestRows = itemCount;
+    let maxSquareSize = 0;
+
+    // Brute force optimal columns (1 to itemCount)
+    for (let cols = 1; cols <= itemCount; cols++) {
+        const rows = Math.ceil(itemCount / cols);
+
+        // Calculate available width/height accounting for gaps
+        // Width = cols * s + (cols - 1) * GAP
+        // s * cols = Width - (cols - 1) * GAP
+        // s = (Width - (cols - 1) * GAP) / cols
+
+        const availableW = W - (cols - 1) * GAP;
+        const sW = availableW / cols;
+
+        const availableH = H - (rows - 1) * GAP;
+        const sH = availableH / rows;
+
+        const s = Math.min(sW, sH);
+
+        if (s > maxSquareSize) {
+            maxSquareSize = s;
+            bestCols = cols;
+            bestRows = rows;
+        }
+    }
+
+    // Apply styles to grid
+    // Ensure we don't end up with negative values if container is hidden/0
+    if (maxSquareSize > 0) {
+        grid.style.gridTemplateColumns = `repeat(${bestCols}, ${maxSquareSize}px)`;
+        grid.style.gridTemplateRows = `repeat(${bestRows}, ${maxSquareSize}px)`;
+    } else {
+        // Fallback if hidden
+        grid.style.gridTemplateColumns = `repeat(3, 1fr)`;
+        grid.style.gridTemplateRows = `auto`;
+    }
+
 
     // Get durations for status dots
     const currentDurations = getTodayActivityDurations();
@@ -1539,11 +1509,17 @@ function endDrag(e) {
 
     const isClick = movedDist < 5; // moved less than 5 pixels
 
-    // If dragged more than 50% (Lowered from 90% for better feel) OR Clicked
-    if (px > maxDrag * 0.5 || isClick) {
+    // If dragged more than 50% (User requested: force complete if > 50%)
+    const threshold = maxDrag * 0.5;
+    console.log(`[Slider Debug] Drag End. px: ${px}, maxDrag: ${maxDrag}, threshold: ${threshold}, isClick: ${isClick}`);
+
+    if (px > threshold || isClick) {
+        // User requested "Force complete it" - ensure this path is robust
+        console.log("Triggering confirmation via drag/click");
         triggerConfirmAnimation();
     } else {
         // Snap Back
+        console.log("Snapping back (did not reach 50%)");
         handle.style.transition = 'transform 0.3s ease';
         handle.style.transform = 'translateX(0px)';
         const text = document.querySelector('.slider-text');
@@ -1552,7 +1528,9 @@ function endDrag(e) {
 }
 
 function triggerConfirmAnimation() {
-    if (!pendingActivity) return;
+    // Capture activity immediately to prevent race conditions with hideConfirmModal
+    const activityToStart = pendingActivity;
+    if (!activityToStart) return;
 
     const handle = document.getElementById('sliderHandle');
     const container = document.getElementById('sliderContainer');
@@ -1568,8 +1546,9 @@ function triggerConfirmAnimation() {
     if (text) text.style.opacity = '0';
 
     setTimeout(() => {
-        if (pendingActivity) {
-            confirmStart(pendingActivity);
+        // Use local variable
+        if (activityToStart) {
+            confirmStart(activityToStart);
         }
         hideConfirmModal();
     }, 250);
@@ -1595,25 +1574,46 @@ function updateConfirmTimers() {
     }
 }
 
-// --- Sadhguru Quote Logic ---
+
+
+// --- Sadhguru Quote Logic (Shuffle Bag) ---
+
+// Fisher-Yates Shuffle
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
 function showQuoteOverlay() {
-    // Fallback if quotes not loaded yet
-    let pool = state.quotes;
-    if (!pool || pool.length === 0) {
-        console.warn("Using fallback quotes");
-        pool = [
-            { text: "How deeply you touch another life is how rich your life is." },
-            { text: "You cannot exist without the universe. You are not a separate existence." },
-            { text: "Learning is not about earning, but a way of flowering." }
-        ];
+    // 1. Ensure Bag is Ready
+    if (!state.quoteBag || state.quoteBag.length === 0) {
+        let pool = state.quotes;
+
+        // Fallback if main list empty
+        if (!pool || pool.length === 0) {
+            console.warn("Using fallback quotes");
+            pool = [
+                "How deeply you touch another life is how rich your life is.",
+                "You cannot exist without the universe. You are not a separate existence.",
+                "Learning is not about earning, but a way of flowering."
+            ];
+        }
+
+        // Create a shallow copy and shuffle
+        state.quoteBag = [...pool];
+        shuffleArray(state.quoteBag);
+        console.log("Refilled Quote Bag with", state.quoteBag.length, "quotes.");
     }
 
-    const randomQuote = pool[Math.floor(Math.random() * pool.length)];
-    // Handle both object structure and simple string (fallback)
-    const quoteText = randomQuote.text || randomQuote;
+    // 2. Pop one unique quote
+    const randomQuote = state.quoteBag.pop();
+
+    // Handle both object structure and simple string
+    const quoteText = typeof randomQuote === 'object' ? randomQuote.text : randomQuote;
 
     let overlay = document.getElementById('quoteOverlay');
-    // Ensure overlay exists (should be in HTML now)
     if (!overlay) return;
 
     const textEl = document.getElementById('quoteText');
@@ -1629,7 +1629,7 @@ function showQuoteOverlay() {
     // Force display and higher z-index inline to debug
     overlay.style.display = 'flex';
     overlay.style.zIndex = '99999';
-    console.log("Showing Quote Overlay:", quoteText);
+    // console.log("Showing Quote:", quoteText);
 
     // Auto close after 20 seconds
     if (window.quoteTimeout) clearTimeout(window.quoteTimeout);
@@ -1640,9 +1640,6 @@ function showQuoteOverlay() {
     // Global click listener to close on ANY click (even outside the overlay)
     // Add small delay to prevent immediate triggering if created by a click
     setTimeout(() => {
-        // Use a named function reference so we can remove it later if needed, 
-        // but window.hideQuoteOverlay handles the hiding.
-        // We'll just one-off this.
         const clickHandler = () => {
             hideQuoteOverlay();
             document.removeEventListener('click', clickHandler);
