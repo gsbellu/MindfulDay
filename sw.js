@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v15-debug';
+const CACHE_NAME = 'mindfulday-v50';
 const ASSETS = [
     './',
     './index.html',
@@ -50,7 +50,8 @@ const ASSETS = [
     './icons/relax_activity.svg',
     './icons/travel_activity.svg',
     './icons/web_activity.svg',
-    './icons/youtube_activity.svg'
+    './icons/youtube_activity.svg',
+    './icons/switch_activity.svg'
 ];
 
 self.addEventListener('install', (e) => {

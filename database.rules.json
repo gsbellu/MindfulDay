@@ -1,0 +1,10 @@
+{
+    "rules": {
+        ".read": false,
+        ".write": false,
+        "state": {
+            ".read": "auth != null && auth.token.email === 'gs.bellu@gmail.com'",
+            ".write": "auth != null && auth.token.email === 'gs.bellu@gmail.com'"
+        }
+    }
+}

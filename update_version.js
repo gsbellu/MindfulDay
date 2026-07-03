@@ -3,6 +3,7 @@ const path = require('path');
 
 const versionFilePath = path.join(__dirname, 'version.json');
 const appJsPath = path.join(__dirname, 'app.js');
+const swJsPath = path.join(__dirname, 'sw.js');
 
 // 1. Read current version
 let versionData = { build: 0 };
@@ -60,4 +61,23 @@ if (fs.existsSync(appJsPath)) {
     }
 } else {
     console.error("app.js not found!");
+}
+
+// 6. Update sw.js CACHE_NAME so every deploy installs a fresh service worker
+// and invalidates the old asset cache (index.html, style.css, icons, ...).
+if (fs.existsSync(swJsPath)) {
+    let swContent = fs.readFileSync(swJsPath, 'utf8');
+
+    const swRegex = /const\s+CACHE_NAME\s*=\s*['"].*?['"];/;
+    const swReplacement = `const CACHE_NAME = 'mindfulday-v${versionData.build}';`;
+
+    if (swRegex.test(swContent)) {
+        swContent = swContent.replace(swRegex, swReplacement);
+        fs.writeFileSync(swJsPath, swContent, 'utf8');
+        console.log(`Updated sw.js CACHE_NAME to mindfulday-v${versionData.build}`);
+    } else {
+        console.warn("Could not find CACHE_NAME constant in sw.js to replace.");
+    }
+} else {
+    console.error("sw.js not found!");
 }

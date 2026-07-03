@@ -33,13 +33,19 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-REM 4. Monitor Deployment
+REM 4. Deploy to Firebase Hosting + Database Rules
 echo.
-echo [4/4] Verifying Deployment...
-call node monitor_deployment.js
+echo [4/4] Deploying to Firebase...
+call npx firebase-tools deploy --only hosting,database
+if %errorlevel% neq 0 (
+    echo Error deploying to Firebase.
+    pause
+    exit /b %errorlevel%
+)
 
 echo.
 echo ===========================================
 echo      Deployment Complete!
+echo      Live at: https://mindfulday-timer.web.app
 echo ===========================================
 pause

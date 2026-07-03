@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V48-08.02.2026-04:19 PM";
+const ClientVersion = "V50-03.07.2026-02:31 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -62,7 +62,9 @@ function getActivities() {
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
+    setupAuth();
     checkUpdateSuccess();
+    setupUpdateBadge();
 
     // Fetch quotes
     fetchQuotes();
@@ -241,6 +243,52 @@ function getDeviceId() {
 const DEVICE_ID = getDeviceId();
 const stateRef = window.firebaseDB.ref('state');
 
+// --- Firebase Auth (Google Sign-In) ---
+// Database rules only allow the owner's Google account, so Firebase
+// sync is attached after sign-in. Signed-out = local-only mode.
+let firebaseSyncAttached = false;
+
+function setupAuth() {
+    // Guard: during an update the old cached index.html (without the auth
+    // SDK) can briefly run this new app.js - don't let that break init.
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        console.warn('Auth SDK not loaded yet - running local-only until next reload.');
+        return;
+    }
+    firebase.auth().onAuthStateChanged((user) => {
+        const overlay = document.getElementById('signInOverlay');
+        if (user) {
+            console.log('Signed in as', user.email);
+            if (overlay) overlay.style.display = 'none';
+            attachFirebaseSync();
+        } else {
+            console.log('Not signed in - running local-only');
+            if (overlay && !sessionStorage.getItem('signInDismissed')) {
+                overlay.style.display = 'flex';
+            }
+        }
+    });
+}
+
+function signInWithGoogle() {
+    if (typeof firebase === 'undefined' || !firebase.auth) return;
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).catch((err) => {
+        console.warn('Popup sign-in failed, trying redirect:', err);
+        firebase.auth().signInWithRedirect(provider);
+    });
+}
+
+function dismissSignIn() {
+    sessionStorage.setItem('signInDismissed', 'true');
+    const overlay = document.getElementById('signInOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function isSignedIn() {
+    return !!(firebase.auth && firebase.auth().currentUser);
+}
+
 function loadState() {
     // Try localStorage first for offline fallback
     const saved = localStorage.getItem(STATE_KEY);
@@ -260,6 +308,12 @@ function loadState() {
         // Default values as requested
         state.startToEnd = { bornOn: '31-05-1978', endAt: '60' };
     }
+}
+
+// Attach Firebase load + real-time listener. Called once, after sign-in.
+function attachFirebaseSync() {
+    if (firebaseSyncAttached) return;
+    firebaseSyncAttached = true;
 
     // Load from Firebase (will override local if exists)
     stateRef.once('value').then((snapshot) => {
@@ -301,7 +355,8 @@ function saveState() {
     // Save locally for offline support
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
 
-    // Save to Firebase
+    // Save to Firebase (only when signed in; rules reject anonymous writes)
+    if (!isSignedIn()) return;
     state.lastUpdatedBy = DEVICE_ID;
     stateRef.set(state).catch((error) => {
         console.log('Firebase save failed:', error);
@@ -1264,16 +1319,24 @@ async function performUpdate() {
     // Set flag to show alert on reload
     localStorage.setItem('justUpdated', 'true');
 
-    // Unregister SW to force fresh load on next visit immediately, or trigger update found
+    // Wipe SW caches so nothing stale survives the reload
+    if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map((name) => caches.delete(name)));
+    }
+
+    // Fetch the new service worker; if it changed, it installs,
+    // skipWaiting + controllerchange will reload the page with fresh assets
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
-            await registration.update(); // Try to update the SW
+            await registration.update();
         }
     }
 
-    // Force reload ignoring cache
-    window.location.reload(true);
+    // reload(true) is deprecated and ignored; caches are gone so a
+    // plain reload fetches everything from the network
+    window.location.reload();
 }
 
 function checkUpdateSuccess() {
@@ -1293,15 +1356,38 @@ function checkUpdateSuccess() {
 // Check for updates
 window.checkForUpdates = async function () {
     console.log('Checking for updates...');
-    if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-            await registration.update();
-        }
-    }
-    // Force reload ignoring cache
-    window.location.reload(true);
+    await performUpdate();
 };
+
+// --- Update Badge ---
+// Compares the deployed version.json against ClientVersion on load and
+// whenever the app comes back to the foreground; shows a dot on the
+// settings nav button when a newer build is on the server.
+async function refreshUpdateBadge() {
+    const settingsBtn = document.querySelector('.nav-btn[data-mode="settings"]');
+    if (!settingsBtn) return;
+
+    const serverVer = await getServerVersion();
+    const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
+
+    let badge = settingsBtn.querySelector('.update-badge');
+    if (isMismatch) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'update-badge';
+            settingsBtn.appendChild(badge);
+        }
+    } else if (badge) {
+        badge.remove();
+    }
+}
+
+function setupUpdateBadge() {
+    refreshUpdateBadge();
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshUpdateBadge();
+    });
+}
 
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
