@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V58-04.07.2026-03:37 PM";
+const ClientVersion = "V59-04.07.2026-03:52 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -122,7 +122,8 @@ function processPendingSwitch() {
         return;
     }
     console.log('Deep link switch to:', act.id);
-    confirmStart(act);
+    // quiet: no quote overlay for Siri/URL-triggered switches
+    confirmStart(act, null, { quiet: true });
     showToast(`Switched to ${act.label}`);
 }
 
@@ -390,6 +391,7 @@ function loadState() {
     if (saved) {
         state = JSON.parse(saved);
     }
+    delete state.quoteBag; // legacy stored bag, now device-local
 
     // Ensure activitySettings is NOT loaded from stale local state
     // We want to force it to load from settings_activities.json or DEFAULT_ACTIVITIES
@@ -480,7 +482,10 @@ function refreshStateFromServer() {
         const fs = snapshot.val();
         if (!fs) return;
         if (fs.lastUpdate && state.lastUpdate && fs.lastUpdate <= state.lastUpdate) return;
+        const keepQuotes = state.quotes;
         state = fs;
+        state.quotes = keepQuotes || [];
+        delete state.quoteBag; // legacy synced bag, now device-local
         state.activitySettings = null;
         fetchActivitySettings(); // re-renders grid and restores the label
         renderMonitorView('measureToday');
@@ -498,7 +503,10 @@ function attachFirebaseSync() {
     stateRef.once('value').then((snapshot) => {
         const firebaseState = snapshot.val();
         if (firebaseState) {
+            const keepQuotes = state.quotes;
             state = firebaseState;
+            state.quotes = keepQuotes || [];
+            delete state.quoteBag; // legacy synced bag, now device-local
             // AGAIN, force clear settings to use JSON file
             state.activitySettings = null;
 
@@ -524,7 +532,10 @@ function attachFirebaseSync() {
                 console.log('Ignoring stale remote state', firebaseState.lastUpdate, '<', state.lastUpdate);
                 return;
             }
+            const keepQuotes = state.quotes;
             state = firebaseState;
+            state.quotes = keepQuotes || [];
+            delete state.quoteBag; // legacy synced bag, now device-local
             // Keep remote settings? User said "settings in JSON file".
             // So we should arguably ignore remote settings for activities too.
             // But let's assume JSON file is the source of truth for THIS client.
@@ -539,14 +550,22 @@ function attachFirebaseSync() {
 }
 
 function saveState() {
+    state.lastUpdatedBy = DEVICE_ID;
+    state.lastUpdate = Date.now();
+
+    // Persist a slim copy: quotes and the activity list are loaded from
+    // their JSON files on every start and must not be stored or synced
+    // (the synced quote bag was the cause of repeating quotes).
+    const outgoing = { ...state };
+    delete outgoing.quotes;
+    delete outgoing.quoteBag;
+    delete outgoing.activitySettings;
+
     // Save locally for offline support
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    localStorage.setItem(STATE_KEY, JSON.stringify(outgoing));
 
     // Save to Firebase (only when signed in; rules reject anonymous writes)
     if (!isSignedIn()) return;
-    state.lastUpdatedBy = DEVICE_ID;
-    state.lastUpdate = Date.now();
-    const outgoing = state;
     // Transaction instead of set: refuse to clobber a newer server state
     // (e.g. this device slept and another one switched tasks meanwhile).
     stateRef.transaction((current) => {
@@ -1874,29 +1893,36 @@ function shuffleArray(array) {
     }
 }
 
-function showQuoteOverlay() {
-    // 1. Ensure Bag is Ready
-    if (!state.quoteBag || state.quoteBag.length === 0) {
-        let pool = state.quotes;
+// Device-local shuffle bag of quote indices. Lives in localStorage and
+// is persisted immediately after each draw. The old bag inside the
+// synced state was clobbered by every device sync and rewound by every
+// reload (saves happened before the draw), which caused the repeats.
+const QUOTE_BAG_KEY = 'quoteBagV2';
 
-        // Fallback if main list empty
-        if (!pool || pool.length === 0) {
-            console.warn("Using fallback quotes");
-            pool = [
-                "How deeply you touch another life is how rich your life is.",
-                "You cannot exist without the universe. You are not a separate existence.",
-                "Learning is not about earning, but a way of flowering."
-            ];
-        }
+function nextQuote() {
+    const pool = (state.quotes && state.quotes.length) ? state.quotes : [
+        "How deeply you touch another life is how rich your life is.",
+        "You cannot exist without the universe. You are not a separate existence.",
+        "Learning is not about earning, but a way of flowering."
+    ];
 
-        // Create a shallow copy and shuffle
-        state.quoteBag = [...pool];
-        shuffleArray(state.quoteBag);
-        console.log("Refilled Quote Bag with", state.quoteBag.length, "quotes.");
+    let bag = [];
+    try { bag = JSON.parse(localStorage.getItem(QUOTE_BAG_KEY)) || []; } catch (e) { }
+
+    // Refill when empty or when the quote list changed size
+    if (!bag.length || bag.some(i => i >= pool.length)) {
+        bag = pool.map((_, i) => i);
+        shuffleArray(bag);
+        console.log("Refilled quote bag with", bag.length, "quotes.");
     }
 
-    // 2. Pop one unique quote
-    const randomQuote = state.quoteBag.pop();
+    const idx = bag.pop();
+    localStorage.setItem(QUOTE_BAG_KEY, JSON.stringify(bag));
+    return pool[idx];
+}
+
+function showQuoteOverlay() {
+    const randomQuote = nextQuote();
 
     // Handle both object structure and simple string
     const quoteText = typeof randomQuote === 'object' ? randomQuote.text : randomQuote;
