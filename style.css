@@ -297,10 +297,11 @@ body {
     align-items: center;
     /* Center vertically */
     justify-content: space-around;
-    background: #000000;
-    border-top: none;
+    /* Light tab bar (iOS style): the safe-area inset blends into the
+       page instead of reading as a black patch under the icons. */
+    background: #ffffff;
+    border-top: 1px solid #e5e5ea;
     padding-bottom: env(safe-area-inset-bottom);
-    /* Extend black background */
     padding-top: 4px;
 }
 
@@ -319,18 +320,16 @@ body {
     width: 32px;
     /* Restored size */
     height: 32px;
-    opacity: 0.7;
-    /* Standard opacity */
+    opacity: 0.35;
+    /* Dark icons on the light tab bar */
     transition: all 0.2s;
-    filter: invert(1);
+    filter: none;
 }
 
 .nav-btn.active img {
     opacity: 1;
     transform: scale(1.1);
-    filter: invert(1);
-    /* Keep white */
-    /* Black active state removed, keeping white */
+    filter: none;
 }
 
 
