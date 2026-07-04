@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V52-04.07.2026-10:32 AM";
+const ClientVersion = "V53-04.07.2026-11:37 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -97,8 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const nav = document.querySelector('.navigation-area');
             const cont = document.querySelector('.app-container');
             const sab = nav ? getComputedStyle(nav).paddingBottom : '?';
+            const sat = cont ? getComputedStyle(cont).paddingTop : '?';
             const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-            logPWA(`VP screen=${screen.height} inner=${window.innerHeight} vv=${window.visualViewport ? Math.round(window.visualViewport.height) : '?'} contBot=${cont ? Math.round(cont.getBoundingClientRect().bottom) : '?'} navBot=${nav ? Math.round(nav.getBoundingClientRect().bottom) : '?'} sab=${sab} standalone=${standalone}`);
+            logPWA(`VP screen=${screen.height} inner=${window.innerHeight} vv=${window.visualViewport ? Math.round(window.visualViewport.height) : '?'} contBot=${cont ? Math.round(cont.getBoundingClientRect().bottom) : '?'} navBot=${nav ? Math.round(nav.getBoundingClientRect().bottom) : '?'} sat=${sat} sab=${sab} standalone=${standalone}`);
         } catch (e) {
             logPWA('VP diag failed: ' + e.message);
         }

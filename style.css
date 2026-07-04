@@ -34,17 +34,19 @@ body {
 .app-container {
     display: flex;
     flex-direction: column;
-    /* Pin to the real viewport edges. On iOS standalone PWAs the
-       html/body 100% chain resolves short of the actual screen,
-       leaving a black gap below the nav bar. position:fixed + inset
-       sizes the app to the true visible area on every platform. */
+    /* iOS standalone anchors the layout viewport at the top of the
+       screen but excludes the status-bar height from it (measured on
+       device: screen=852, inner=793, diff=59 = safe-area-inset-top).
+       So 100% height stops 59pt short of the physical bottom and the
+       black body shows through. Extend the container by the top inset
+       to reach the real screen edge; on desktop/Android the inset is
+       0 and this is a plain full-viewport container. */
     position: fixed;
     top: 0;
     right: 0;
-    bottom: 0;
     left: 0;
     width: auto;
-    height: auto;
+    height: calc(100% + var(--safe-area-top));
     background: #ffffff;
     padding-top: var(--safe-area-top);
 }
