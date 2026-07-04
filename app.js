@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V57-04.07.2026-12:16 PM";
+const ClientVersion = "V58-04.07.2026-03:37 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -136,6 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Deep-link safety net: if the initial Firebase load hangs
     // (offline), let a pending ?switch= proceed on local state.
     setTimeout(() => deepLinkGate('firebase'), 4000);
+
+    // Never act on a stale in-memory state after waking from background
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshStateFromServer();
+    });
 
     // Fetch quotes
     fetchQuotes();
@@ -400,10 +405,94 @@ function loadState() {
     }
 }
 
+// --- Remote Command Queue (silent Siri Shortcuts) ---
+// An iOS Shortcut POSTs {"task":"work"} to
+//   https://<db>/commands/<token>/queue.json
+// via the RTDB REST API (no browser opens). Database rules allow
+// unauthenticated writes only under this unguessable token path; any
+// signed-in client claims each command with a transaction (so exactly
+// one device applies it) and performs the normal switch, backdated to
+// when the command was issued.
+const COMMAND_TOKEN = '3c30bd9b888c218221e9f772796539f59f66c7aad3c52329';
+
+// Firebase push ids encode their creation time in the first 8 chars.
+function decodePushIdTime(key) {
+    const ALPHABET = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+    if (!key || key.length < 8) return null;
+    let ts = 0;
+    for (let i = 0; i < 8; i++) {
+        const idx = ALPHABET.indexOf(key.charAt(i));
+        if (idx === -1) return null;
+        ts = ts * 64 + idx;
+    }
+    return ts;
+}
+
+function attachCommandListener() {
+    const queueRef = window.firebaseDB.ref('commands/' + COMMAND_TOKEN + '/queue');
+    queueRef.on('child_added', (snap) => {
+        let claimed = null;
+        snap.ref.transaction((current) => {
+            if (current === null) return; // another device claimed it
+            claimed = current;
+            return null; // delete = claim
+        }, (err, committed) => {
+            if (err || !committed || !claimed) return;
+            applyRemoteCommand(snap.key, claimed, 0);
+        });
+    });
+}
+
+function applyRemoteCommand(key, cmd, attempt) {
+    const target = String(cmd.task || '').trim().toLowerCase();
+    if (!target) return;
+
+    // Activity list may not be loaded yet on a cold start - retry briefly
+    if (!getActivities().length) {
+        if (attempt < 30) setTimeout(() => applyRemoteCommand(key, cmd, attempt + 1), 1000);
+        return;
+    }
+
+    const act = getActivities().find(a =>
+        a.id.toLowerCase() === target || a.label.toLowerCase() === target);
+    if (!act) {
+        console.warn('Remote command: unknown activity', target);
+        return;
+    }
+    if (state.currentActivityId === act.id) return;
+
+    // Apply at the moment the command was issued (push id timestamp),
+    // unless that would break the timeline.
+    const now = Date.now();
+    let at = (typeof cmd.ts === 'number') ? cmd.ts : decodePushIdTime(key);
+    if (!at || at <= (state.currentActivityStartTime || 0) || at > now + 60000) at = now;
+
+    console.log('Remote command: switching to', act.id, 'at', new Date(at).toLocaleTimeString());
+    confirmStart(act, at, { quiet: true });
+    showToast(`Switched to ${act.label} (Siri)`);
+}
+
+// Re-pull the server state when the app returns to the foreground so a
+// device waking from background never acts on (or shows) a stale copy.
+function refreshStateFromServer() {
+    if (!isSignedIn() || !firebaseSyncAttached) return;
+    stateRef.once('value').then((snapshot) => {
+        const fs = snapshot.val();
+        if (!fs) return;
+        if (fs.lastUpdate && state.lastUpdate && fs.lastUpdate <= state.lastUpdate) return;
+        state = fs;
+        state.activitySettings = null;
+        fetchActivitySettings(); // re-renders grid and restores the label
+        renderMonitorView('measureToday');
+        renderMonitorView('measureYesterday');
+    }).catch(() => { });
+}
+
 // Attach Firebase load + real-time listener. Called once, after sign-in.
 function attachFirebaseSync() {
     if (firebaseSyncAttached) return;
     firebaseSyncAttached = true;
+    attachCommandListener();
 
     // Load from Firebase (will override local if exists)
     stateRef.once('value').then((snapshot) => {
@@ -429,6 +518,12 @@ function attachFirebaseSync() {
     stateRef.on('value', (snapshot) => {
         const firebaseState = snapshot.val();
         if (firebaseState && firebaseState.lastUpdatedBy !== DEVICE_ID) {
+            // Freshness guard: a device waking from background can flush
+            // a stale copy; never let an older state replace a newer one.
+            if (firebaseState.lastUpdate && state.lastUpdate && firebaseState.lastUpdate < state.lastUpdate) {
+                console.log('Ignoring stale remote state', firebaseState.lastUpdate, '<', state.lastUpdate);
+                return;
+            }
             state = firebaseState;
             // Keep remote settings? User said "settings in JSON file".
             // So we should arguably ignore remote settings for activities too.
@@ -450,7 +545,16 @@ function saveState() {
     // Save to Firebase (only when signed in; rules reject anonymous writes)
     if (!isSignedIn()) return;
     state.lastUpdatedBy = DEVICE_ID;
-    stateRef.set(state).catch((error) => {
+    state.lastUpdate = Date.now();
+    const outgoing = state;
+    // Transaction instead of set: refuse to clobber a newer server state
+    // (e.g. this device slept and another one switched tasks meanwhile).
+    stateRef.transaction((current) => {
+        if (current && current.lastUpdate && outgoing.lastUpdate && current.lastUpdate > outgoing.lastUpdate) {
+            return; // abort - server is newer
+        }
+        return outgoing;
+    }).catch((error) => {
         console.log('Firebase save failed:', error);
     });
 }
@@ -655,8 +759,10 @@ function handleActivityClick(activity) {
     showConfirmModal(activity);
 }
 
-function confirmStart(activity) {
-    const now = Date.now();
+function confirmStart(activity, atTime, opts) {
+    // atTime: backdate the switch (remote Siri commands are applied at
+    // the moment they were issued). opts.quiet: no quote overlay.
+    const now = atTime || Date.now();
 
     // RESET ALL TIMERS when Wake Up is pressed (new day starts)
     if (activity.id === 'wakeup') {
@@ -721,9 +827,11 @@ function confirmStart(activity) {
 
         // Show Quote Overlay with slight delay to appear "after" switch
         // Show Quote Overlay with minimal delay (next tick) to ensure DOM update
-        setTimeout(() => {
-            showQuoteOverlay();
-        }, 0);
+        if (!opts || !opts.quiet) {
+            setTimeout(() => {
+                showQuoteOverlay();
+            }, 0);
+        }
         return;
     }
 
@@ -775,9 +883,11 @@ function confirmStart(activity) {
 
     // Show Quote Overlay with slight delay
     // Show Quote Overlay with minimal delay (next tick)
-    setTimeout(() => {
-        showQuoteOverlay();
-    }, 0);
+    if (!opts || !opts.quiet) {
+        setTimeout(() => {
+            showQuoteOverlay();
+        }, 0);
+    }
 }
 
 // --- Focus Mode Logic ---
