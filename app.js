@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V51-03.07.2026-06:21 PM";
+const ClientVersion = "V52-04.07.2026-10:32 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -89,6 +89,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setupConfirmModal(); // Initialize Slider Logic
     startTimerLoop();
     registerServiceWorker();
+
+    // Viewport diagnostics for the iOS bottom-gap issue.
+    // Shows up in Settings > App Control > Debug Log.
+    setTimeout(() => {
+        try {
+            const nav = document.querySelector('.navigation-area');
+            const cont = document.querySelector('.app-container');
+            const sab = nav ? getComputedStyle(nav).paddingBottom : '?';
+            const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            logPWA(`VP screen=${screen.height} inner=${window.innerHeight} vv=${window.visualViewport ? Math.round(window.visualViewport.height) : '?'} contBot=${cont ? Math.round(cont.getBoundingClientRect().bottom) : '?'} navBot=${nav ? Math.round(nav.getBoundingClientRect().bottom) : '?'} sab=${sab} standalone=${standalone}`);
+        } catch (e) {
+            logPWA('VP diag failed: ' + e.message);
+        }
+    }, 1000);
 
     const closeBtn = document.getElementById('closeFocusBtn');
     if (closeBtn) {

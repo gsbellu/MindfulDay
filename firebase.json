@@ -1,5 +1,6 @@
 {
     "hosting": {
+        "site": "mindfulday-gsb",
         "public": ".",
         "ignore": [
             "firebase.json",

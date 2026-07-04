@@ -287,17 +287,17 @@ body {
 /* Area 5: Navigation Area (9%) */
 .navigation-area {
     height: auto;
-    /* Allow growth for safe area */
-    min-height: 60px;
+    /* Slim bar: icon row + home-indicator inset only */
+    min-height: 48px;
     display: flex;
     align-items: center;
     /* Center vertically */
     justify-content: space-around;
     background: #000000;
     border-top: none;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(env(safe-area-inset-bottom), 6px);
     /* Extend black background */
-    padding-top: 5px;
+    padding-top: 4px;
 }
 
 .nav-btn {
