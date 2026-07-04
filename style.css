@@ -288,16 +288,18 @@ body {
 
 /* Area 5: Navigation Area (9%) */
 .navigation-area {
-    height: auto;
-    /* Slim bar: icon row + home-indicator inset only */
-    min-height: 48px;
+    /* Fixed-size bar: 50px icon strip + home-indicator inset.
+       flex-shrink 0 so the flex layout can never crush the icons
+       into the safe-area padding. */
+    height: calc(50px + env(safe-area-inset-bottom));
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     /* Center vertically */
     justify-content: space-around;
     background: #000000;
     border-top: none;
-    padding-bottom: max(env(safe-area-inset-bottom), 6px);
+    padding-bottom: env(safe-area-inset-bottom);
     /* Extend black background */
     padding-top: 4px;
 }
