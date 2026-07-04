@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V59-04.07.2026-03:52 PM";
+const ClientVersion = "V60-04.07.2026-10:17 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1691,6 +1691,14 @@ function setupConfirmModal() {
 
         window.addEventListener('mouseup', endDrag);
         window.addEventListener('touchend', endDrag);
+
+        // iOS fires touchcancel (not touchend) when a system gesture or
+        // notification interrupts the drag - snap back, never rest mid-way
+        window.addEventListener('touchcancel', () => {
+            if (!isDraggingSlider) return;
+            isDraggingSlider = false;
+            snapSliderBack();
+        });
     }
 
     // Click on track to confirm (Right side click)
@@ -1800,6 +1808,16 @@ function onDrag(e) {
     if (text) text.style.opacity = opacity;
 }
 
+function snapSliderBack() {
+    const handle = document.getElementById('sliderHandle');
+    if (handle) {
+        handle.style.transition = 'transform 0.3s ease';
+        handle.style.transform = 'translateX(0px)';
+    }
+    const text = document.querySelector('.slider-text');
+    if (text) text.style.opacity = '1';
+}
+
 function endDrag(e) {
     if (!isDraggingSlider) return;
     isDraggingSlider = false;
@@ -1808,29 +1826,27 @@ function endDrag(e) {
     const currentTransform = handle.style.transform;
     const px = parseFloat(currentTransform.replace('translateX(', '').replace('px)', '')) || 0;
 
-    // Check for "Click" (negligible movement)
-    const currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-    // For mouseup, e.pageX is valid. For touchend, it's in e.changedTouches
-    const endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].pageX;
+    // Check for "Click" (negligible movement). NOTE: touchend events have
+    // an EMPTY e.touches list - the lifted finger is only in
+    // e.changedTouches. Reading e.touches[0] here used to throw and leave
+    // the handle stuck mid-way.
+    let endX = sliderStartX;
+    if (e.type.includes('mouse')) {
+        endX = e.pageX;
+    } else if (e.changedTouches && e.changedTouches.length) {
+        endX = e.changedTouches[0].pageX;
+    }
     const movedDist = Math.abs(endX - sliderStartX);
-
     const isClick = movedDist < 5; // moved less than 5 pixels
 
-    // If dragged more than 50% (User requested: force complete if > 50%)
+    // If dragged more than 50%: complete; otherwise snap back.
+    // The handle must never rest in between.
     const threshold = maxDrag * 0.5;
-    console.log(`[Slider Debug] Drag End. px: ${px}, maxDrag: ${maxDrag}, threshold: ${threshold}, isClick: ${isClick}`);
 
     if (px > threshold || isClick) {
-        // User requested "Force complete it" - ensure this path is robust
-        console.log("Triggering confirmation via drag/click");
         triggerConfirmAnimation();
     } else {
-        // Snap Back
-        console.log("Snapping back (did not reach 50%)");
-        handle.style.transition = 'transform 0.3s ease';
-        handle.style.transform = 'translateX(0px)';
-        const text = document.querySelector('.slider-text');
-        if (text) text.style.opacity = '1';
+        snapSliderBack();
     }
 }
 
