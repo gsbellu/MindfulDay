@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V56-04.07.2026-12:00 PM";
+const ClientVersion = "V57-04.07.2026-12:16 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -59,12 +59,83 @@ function getActivities() {
     return state.activitySettings || [];
 }
 
+// --- Siri / Shortcuts Deep Link (?switch=<activity-id-or-label>) ---
+// An iOS Shortcut opens e.g. https://mindfulday-gsb.web.app/?switch=work
+// and the app performs the normal activity switch via confirmStart().
+// The switch waits until BOTH the activity list and the initial
+// Firebase state have loaded, otherwise the incoming snapshot would
+// overwrite the freshly switched state.
+let pendingSwitchId = null;
+const deepLinkReady = { settings: false, firebase: false };
+
+(function captureDeepLink() {
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('switch');
+    if (target) {
+        pendingSwitchId = target.trim().toLowerCase();
+        // Clean the URL so a manual reload doesn't switch again
+        params.delete('switch');
+        const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.replaceState(null, '', clean);
+    }
+})();
+
+function showToast(msg) {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+}
+
+function deepLinkGate(part) {
+    deepLinkReady[part] = true;
+    if (deepLinkReady.settings && deepLinkReady.firebase) {
+        processPendingSwitch();
+    }
+}
+
+function processPendingSwitch() {
+    if (!pendingSwitchId) return;
+    const target = pendingSwitchId;
+    pendingSwitchId = null;
+
+    const acts = getActivities();
+    if (!acts.length) {
+        // Activity list momentarily empty (cleared for refetch after the
+        // Firebase snapshot) - re-arm and wait for the next gate call.
+        pendingSwitchId = target;
+        return;
+    }
+
+    const act = acts.find(a =>
+        a.id.toLowerCase() === target || a.label.toLowerCase() === target);
+
+    if (!act) {
+        showToast(`Unknown activity "${target}"`);
+        return;
+    }
+    if (state.currentActivityId === act.id) {
+        showToast(`${act.label} is already running`);
+        return;
+    }
+    console.log('Deep link switch to:', act.id);
+    confirmStart(act);
+    showToast(`Switched to ${act.label}`);
+}
+
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
     setupAuth();
     checkUpdateSuccess();
     setupUpdateBadge();
+
+    // Deep-link safety net: if the initial Firebase load hangs
+    // (offline), let a pending ?switch= proceed on local state.
+    setTimeout(() => deepLinkGate('firebase'), 4000);
 
     // Fetch quotes
     fetchQuotes();
@@ -150,9 +221,11 @@ function fetchActivitySettings() {
                 const act = state.activitySettings.find(a => a.id === state.currentActivityId);
                 if (act) updateMetaDisplay(act);
             }
+            deepLinkGate('settings');
         })
         .catch(err => {
             console.warn("Could not load settings_activities.json, using defaults.", err);
+            deepLinkGate('settings');
         });
 }
 
@@ -281,6 +354,8 @@ function setupAuth() {
             if (overlay && !sessionStorage.getItem('signInDismissed')) {
                 overlay.style.display = 'flex';
             }
+            // No Firebase state will arrive; deep links may proceed
+            deepLinkGate('firebase');
         }
     });
 }
@@ -344,8 +419,10 @@ function attachFirebaseSync() {
             fetchActivitySettings(); // Refetch to be sure
             renderActivities(); // Render defaults then update
         }
+        deepLinkGate('firebase');
     }).catch((error) => {
         console.log('Firebase load failed, using local state:', error);
+        deepLinkGate('firebase');
     });
 
     // Listen for real-time updates from other devices
