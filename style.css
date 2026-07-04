@@ -1,6 +1,9 @@
 :root {
-    --bg-color: #ffffff;
-    --text-color: #1c1c1e;
+    --bg-color: #000000;
+    --text-color: #f2f2f7;
+    --card-bg: #1c1c1e;
+    --card-border: #2c2c2e;
+    --muted-text: #8e8e93;
     --safe-area-top: env(safe-area-inset-top);
     --safe-area-bottom: env(safe-area-inset-bottom);
 }
@@ -34,20 +37,17 @@ body {
 .app-container {
     display: flex;
     flex-direction: column;
-    /* iOS standalone anchors the layout viewport at the top of the
-       screen but excludes the status-bar height from it (measured on
-       device: screen=852, inner=793, diff=59 = safe-area-inset-top).
-       So 100% height stops 59pt short of the physical bottom and the
-       black body shows through. Extend the container by the top inset
-       to reach the real screen edge; on desktop/Android the inset is
-       0 and this is a plain full-viewport container. */
+    /* iOS standalone cannot paint below the layout viewport bottom
+       (measured on device: screen=852, viewport=793); that dead zone
+       always shows the page background color. With a dark theme the
+       dead zone blends in, so the app simply fills the viewport. */
     position: fixed;
     top: 0;
     right: 0;
     left: 0;
     width: auto;
-    height: calc(100% + var(--safe-area-top));
-    background: #ffffff;
+    height: 100%;
+    background: #000000;
     padding-top: var(--safe-area-top);
 }
 
@@ -102,9 +102,9 @@ body {
 
 .activity-btn {
     border-radius: 16px;
-    background: #ffffff;
-    border: 1px solid #e5e5ea;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -123,16 +123,18 @@ body {
     /* Reasonable size */
     height: 60%;
     object-fit: contain;
-    opacity: 0.8;
+    opacity: 0.85;
+    /* Icon artwork is black; invert for dark tiles */
+    filter: invert(1);
 }
 
 .activity-btn.active {
-    background: #000000;
-    border-color: #000000;
+    background: #ffffff;
+    border-color: #ffffff;
 }
 
 .activity-btn.active img {
-    filter: invert(1);
+    filter: none;
     opacity: 1;
 }
 
@@ -179,8 +181,8 @@ body {
     gap: 10px;
     padding: 5px 15px;
     align-items: center;
-    background: #fff;
-    border-top: 1px solid #f0f0f0;
+    background: #000000;
+    border-top: 1px solid var(--card-border);
 }
 
 .timer-pill {
@@ -228,14 +230,14 @@ body {
     padding: 5px 15px;
     gap: 6px;
     justify-content: center;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--card-border);
 }
 
 .progress-bar-container {
     width: 100%;
     height: 48%;
     /* Split height */
-    background: #e5e5ea;
+    background: var(--card-bg);
     border-radius: 20px;
     overflow: hidden;
     position: relative;
@@ -297,12 +299,20 @@ body {
     align-items: center;
     /* Center vertically */
     justify-content: space-around;
-    /* Light tab bar (iOS style): the safe-area inset blends into the
-       page instead of reading as a black patch under the icons. */
-    background: #ffffff;
-    border-top: 1px solid #e5e5ea;
+    background: #000000;
+    border-top: 1px solid var(--card-border);
     padding-bottom: env(safe-area-inset-bottom);
     padding-top: 4px;
+}
+
+/* Installed (standalone) iOS: the home indicator sits in the
+   unpaintable dead zone below the viewport, so no inset padding is
+   needed - it would only push the icons up and clip them. */
+@media (display-mode: standalone) {
+    .navigation-area {
+        height: 58px;
+        padding-bottom: 8px;
+    }
 }
 
 .nav-btn {
@@ -320,16 +330,16 @@ body {
     width: 32px;
     /* Restored size */
     height: 32px;
-    opacity: 0.35;
-    /* Dark icons on the light tab bar */
+    opacity: 0.45;
+    /* White icons on the dark tab bar */
     transition: all 0.2s;
-    filter: none;
+    filter: invert(1);
 }
 
 .nav-btn.active img {
     opacity: 1;
     transform: scale(1.1);
-    filter: none;
+    filter: invert(1);
 }
 
 
@@ -352,19 +362,19 @@ body {
 }
 
 .tab-btn {
-    background: #f2f2f7;
+    background: var(--card-bg);
     border: none;
     padding: 6px 14px;
     font-size: 13px;
     font-weight: 600;
-    color: #8e8e93;
+    color: var(--muted-text);
     cursor: pointer;
     border-radius: 16px;
 }
 
 .tab-btn.active {
-    background: #000000;
-    color: #ffffff;
+    background: #ffffff;
+    color: #000000;
 }
 
 .activity-row {
@@ -372,7 +382,7 @@ body {
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    background: #f8f9fa;
+    background: var(--card-bg);
     border-radius: 10px;
     border-left: 4px solid transparent;
 }
@@ -389,6 +399,7 @@ body {
 .activity-row-icon {
     width: 28px;
     height: 28px;
+    filter: invert(1);
 }
 
 .activity-row-details {
@@ -402,7 +413,7 @@ body {
 
 .activity-row-info {
     font-size: 12px;
-    color: #666;
+    color: var(--muted-text);
 }
 
 
@@ -413,7 +424,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #ffffff;
+    background: #000000;
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -456,6 +467,7 @@ body {
     width: 100px;
     height: 100px;
     object-fit: contain;
+    filter: invert(1);
 }
 
 .focus-timer-block {
@@ -492,7 +504,7 @@ body {
 /* --- Settings Specific --- */
 .settings-section {
     margin-bottom: 20px;
-    border: 1px solid #eee;
+    border: 1px solid var(--card-border);
     padding: 15px;
     border-radius: 12px;
 }
@@ -501,7 +513,7 @@ body {
     font-size: 16px;
     font-weight: 700;
     margin-bottom: 10px;
-    color: #000;
+    color: var(--text-color);
 }
 
 .settings-group {
@@ -511,16 +523,18 @@ body {
 .settings-label {
     display: block;
     font-size: 13px;
-    color: #666;
+    color: var(--muted-text);
     margin-bottom: 4px;
 }
 
 .settings-input {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid #3a3a3c;
     border-radius: 8px;
     font-size: 15px;
+    background: var(--card-bg);
+    color: var(--text-color);
 }
 
 .settings-date-row {
@@ -723,16 +737,16 @@ body {
     /* Bigger buttons for Sadhana modes */
     height: 70px;
     border-radius: 12px;
-    border: 2px solid #e5e5ea;
-    background: #fff;
+    border: 2px solid var(--card-border);
+    background: var(--card-bg);
     padding: 5px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .sadhana-btn.active {
-    border-color: #000000;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-color: #ffffff;
+    box-shadow: none;
     transform: translateY(-2px);
 }
 
@@ -747,7 +761,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    background: #f2f2f7;
+    background: var(--card-bg);
     padding: 10px 20px;
     border-radius: 30px;
 }
@@ -798,20 +812,21 @@ body {
 .settings-input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #3a3a3c;
     /* Basic border */
     border-radius: 8px;
     /* Rounded corners */
     font-size: 16px;
     /* Prevent zoom on iOS */
-    background: #f9f9f9;
+    background: var(--card-bg);
+    color: var(--text-color);
     box-sizing: border-box;
     /* Include padding in width */
 }
 
 .settings-label {
     font-size: 14px;
-    color: #333;
+    color: var(--muted-text);
 }
 
 /* Settings Container Responsive Layout */

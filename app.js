@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V55-04.07.2026-11:49 AM";
+const ClientVersion = "V56-04.07.2026-12:00 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1772,7 +1772,7 @@ async function showSettings() {
         console.warn("Version fetch failed", e);
     }
     const isMismatch = (serverVer !== "Unknown" && serverVer !== ClientVersion);
-    const btnColor = isMismatch ? '#007aff' : '#ccc';
+    const btnColor = isMismatch ? '#0a84ff' : '#3a3a3c';
     const btnText = isMismatch ? 'Update Available' : 'Up to Date';
     // We allow clicking even if up to date to force refresh
 
@@ -1800,9 +1800,9 @@ async function showSettings() {
         <div class="settings-section">
             <div class="settings-header">App Info</div>
             
-            <div style="margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 10px;">
-                <p style="margin: 5px 0; font-size:14px;"><strong>Client:</strong> <span style="color: #007aff;">${ClientVersion}</span></p>
-                <p style="margin: 5px 0; font-size:14px; border-top: 1px solid #e0e0e0; padding-top: 5px;"><strong>Server:</strong> <span style="color: ${isMismatch ? '#ff9500' : '#34c759'};">${serverVer}</span></p>
+            <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.08); border-radius: 10px;">
+                <p style="margin: 5px 0; font-size:14px;"><strong>Client:</strong> <span style="color: #0a84ff;">${ClientVersion}</span></p>
+                <p style="margin: 5px 0; font-size:14px; border-top: 1px solid #3a3a3c; padding-top: 5px;"><strong>Server:</strong> <span style="color: ${isMismatch ? '#ff9500' : '#34c759'};">${serverVer}</span></p>
             </div>
             
             <div class="settings-section">
@@ -1816,7 +1816,7 @@ async function showSettings() {
             </button>
             
             <!-- Debug Logs -->
-            <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #333; max-height: 100px; overflow-y: auto;">
+            <div style="background: #1c1c1e; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #8e8e93; max-height: 100px; overflow-y: auto;">
                 <strong>Debug Log:</strong><br>
                 ${(window.pwaDebugLog || []).length > 0 ? (window.pwaDebugLog || []).join('<br>') : 'No logs yet...'}
             </div>
