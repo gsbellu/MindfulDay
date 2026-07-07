@@ -207,6 +207,10 @@
             logPWA('Hostname: ' + window.location.hostname);
         }
     </script>
+    <!-- Persistent Sadhana audio element: DOM-attached media is what iOS
+         treats as first-class (GC-safe, Media Session capable) -->
+    <audio id="sadhanaAudioEl" preload="auto" playsinline></audio>
+
     <script src="app.js?v=force_18"></script>
 </body>
 

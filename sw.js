@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v60';
+const CACHE_NAME = 'mindfulday-v61';
 const ASSETS = [
     './',
     './index.html',
@@ -37,8 +37,6 @@ const ASSETS = [
     './icons/shakthi.png',
     './icons/shambhavi.png',
     './icons/shoonya.png',
-    './audio/Shakthi.mp3',
-    './audio/Shambhavi.mp3',
     './sadhguru.json',
     './icons/sadhguru.png',
     './icons/sadhguru-sign.png',
@@ -81,6 +79,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (e) => {
+    // Never intercept audio: iOS streams media with HTTP Range requests,
+    // and a cached full-body 200 response makes its player stall and die
+    // mid-file. Let the browser + HTTP cache handle audio natively.
+    if (e.request.destination === 'audio' || e.request.url.includes('/audio/')) {
+        return;
+    }
+
     // We want to ensure version.json is ALWAYS network first
     if (e.request.url.includes('version.json') || e.request.url.includes('app.js')) {
         e.respondWith(

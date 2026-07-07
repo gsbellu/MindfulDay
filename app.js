@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V60-04.07.2026-10:17 PM";
+const ClientVersion = "V61-07.07.2026-10:30 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -857,12 +857,7 @@ function confirmStart(activity, atTime, opts) {
     // New Activity Clicked
 
     // Reset Sadhana state for fresh start whenever we switch activities
-    state.sadhanaMode = null;
-    state.sadhanaTimerStart = null;
-    if (window.sadhanaAudio) {
-        window.sadhanaAudio.pause();
-        window.sadhanaAudio = null;
-    }
+    stopSadhanaAudio();
 
     // Start Day Timer on FIRST activity of any kind if not started
     if (!state.isDayStarted) {
@@ -961,11 +956,141 @@ function showFocusMode(activity) {
     };
 }
 
-function stopSadhanaAudio() {
-    if (window.sadhanaAudio) {
-        window.sadhanaAudio.pause();
-        window.sadhanaAudio = null;
+// --- Sadhana Audio Player ---
+// Rebuilt for stability: a persistent DOM <audio> element (index.html),
+// an explicit "should play" intent flag, stall/error recovery with a
+// watchdog, Media Session integration, and a screen wake lock so iOS
+// auto-lock cannot kill playback mid-meditation.
+
+let sadhanaShouldPlay = false;
+let sadhanaWatchdog = null;
+let sadhanaWakeLock = null;
+let sadhanaAudioWired = false;
+
+function getSadhanaAudio() {
+    return document.getElementById('sadhanaAudioEl');
+}
+
+async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    if (sadhanaWakeLock) return;
+    try {
+        sadhanaWakeLock = await navigator.wakeLock.request('screen');
+        sadhanaWakeLock.addEventListener('release', () => { sadhanaWakeLock = null; });
+    } catch (e) {
+        console.warn('Wake lock unavailable:', e.message);
     }
+}
+
+function releaseWakeLock() {
+    if (sadhanaWakeLock) {
+        sadhanaWakeLock.release().catch(() => { });
+        sadhanaWakeLock = null;
+    }
+}
+
+function sadhanaPlay() {
+    const el = getSadhanaAudio();
+    if (!el || !el.src) return;
+    sadhanaShouldPlay = true;
+    el.play().then(() => {
+        acquireWakeLock();
+        updateSadhanaUI();
+    }).catch((e) => {
+        console.warn('Audio play failed:', e.message);
+        updateSadhanaUI();
+    });
+}
+
+function sadhanaPause() {
+    const el = getSadhanaAudio();
+    sadhanaShouldPlay = false;
+    if (el) el.pause();
+    releaseWakeLock();
+    updateSadhanaUI();
+}
+
+// Reload the file and continue from where playback stopped
+function recoverSadhanaAudio() {
+    const el = getSadhanaAudio();
+    if (!el || !el.src) return;
+    const pos = el.currentTime || 0;
+    console.warn('Recovering sadhana audio at position', Math.round(pos), 's');
+    const onMeta = () => {
+        el.removeEventListener('loadedmetadata', onMeta);
+        try { el.currentTime = Math.min(pos, el.duration || pos); } catch (e) { }
+        if (sadhanaShouldPlay) el.play().catch(() => { });
+    };
+    el.addEventListener('loadedmetadata', onMeta);
+    el.load();
+}
+
+// Watchdog: whatever interrupts playback (stall, decode error, screen
+// lock, backgrounding), if audio is supposed to be playing, bring it back.
+function startSadhanaWatchdog() {
+    if (sadhanaWatchdog) return;
+    sadhanaWatchdog = setInterval(() => {
+        const el = getSadhanaAudio();
+        if (!el || !sadhanaShouldPlay || el.ended || !el.src) return;
+        if (el.error) {
+            recoverSadhanaAudio();
+        } else if (el.paused) {
+            el.play().catch(() => { });
+        }
+    }, 5000);
+}
+
+// One-time wiring of the persistent element and system integrations
+function wireSadhanaAudio() {
+    if (sadhanaAudioWired) return;
+    const el = getSadhanaAudio();
+    if (!el) return;
+    sadhanaAudioWired = true;
+
+    el.addEventListener('ended', () => {
+        sadhanaShouldPlay = false;
+        releaseWakeLock();
+        updateSadhanaUI();
+    });
+    el.addEventListener('error', () => {
+        if (sadhanaShouldPlay) recoverSadhanaAudio();
+    });
+    el.addEventListener('stalled', () => {
+        if (sadhanaShouldPlay && el.paused) el.play().catch(() => { });
+    });
+    el.addEventListener('play', updateSadhanaUI);
+    el.addEventListener('pause', updateSadhanaUI);
+
+    // Coming back to the foreground: re-acquire the wake lock (iOS
+    // releases it on background) and resume if playback was interrupted
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible' || !sadhanaShouldPlay) return;
+        acquireWakeLock();
+        if (el.paused && !el.ended) el.play().catch(() => { });
+    });
+
+    // Lock screen / Control Center transport controls
+    if ('mediaSession' in navigator) {
+        try {
+            navigator.mediaSession.setActionHandler('play', sadhanaPlay);
+            navigator.mediaSession.setActionHandler('pause', sadhanaPause);
+        } catch (e) { }
+    }
+}
+
+function stopSadhanaAudio() {
+    sadhanaShouldPlay = false;
+    const el = getSadhanaAudio();
+    if (el) {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+    }
+    if (sadhanaWatchdog) {
+        clearInterval(sadhanaWatchdog);
+        sadhanaWatchdog = null;
+    }
+    releaseWakeLock();
     state.sadhanaMode = null;
     state.sadhanaTimerStart = null;
 }
@@ -1013,11 +1138,7 @@ function renderSadhanaView(container) {
         </div>
         
         <div class="media-controls" id="mediaControls">
-            <button class="media-btn" onclick="seekSadhana(-10)">⏮</button>
-            <button class="media-btn" onclick="restartSadhana()">|◀</button>
             <button class="media-btn play-pause-btn" onclick="toggleSadhanaPlay()">▶</button>
-            <button class="media-btn" onclick="endSadhana()">▶|</button>
-            <button class="media-btn" onclick="seekSadhana(10)">⏭</button>
         </div>
     `;
 
@@ -1028,24 +1149,36 @@ window.startSadhanaMode = function (mode) {
     state.sadhanaMode = mode;
     state.sadhanaTimerStart = Date.now(); // Start separate timer
 
-    // Stop previous
-    if (window.sadhanaAudio) {
-        window.sadhanaAudio.pause();
-    }
+    wireSadhanaAudio();
+    const el = getSadhanaAudio();
 
     if (mode === 'shoonya') {
-        window.sadhanaAudio = null;
+        // Silent practice: timer only, no audio
+        sadhanaShouldPlay = false;
+        if (el) {
+            el.pause();
+            el.removeAttribute('src');
+            el.load();
+        }
+        releaseWakeLock();
     } else {
         // Capitalize for filename: shakthi -> Shakthi.mp3
         const filename = mode.charAt(0).toUpperCase() + mode.slice(1);
-        window.sadhanaAudio = new Audio(`./audio/${filename}.mp3`);
-        window.sadhanaAudio.play().catch(e => console.error("Audio play failed", e));
+        if (el) {
+            el.src = `./audio/${filename}.mp3`; // (re)selecting restarts from 0
+            sadhanaPlay();
+            startSadhanaWatchdog();
+        }
 
-        // Loop? User didn't specify. Assuming single play.
-        window.sadhanaAudio.onended = () => {
-            // Maybe auto-advance? NO requirements.
-            updateSadhanaUI(); // Update play/pause icon
-        };
+        if ('mediaSession' in navigator) {
+            try {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: filename,
+                    artist: 'MindfulDay',
+                    album: 'Sadhana'
+                });
+            } catch (e) { }
+        }
     }
 
     updateSadhanaUI();
@@ -1053,34 +1186,12 @@ window.startSadhanaMode = function (mode) {
 };
 
 window.toggleSadhanaPlay = function () {
-    if (window.sadhanaAudio) {
-        if (window.sadhanaAudio.paused) {
-            window.sadhanaAudio.play();
-        } else {
-            window.sadhanaAudio.pause();
-        }
-        updateSadhanaUI();
-    }
-};
-
-window.seekSadhana = function (seconds) {
-    if (window.sadhanaAudio) {
-        window.sadhanaAudio.currentTime += seconds;
-    }
-};
-
-window.restartSadhana = function () {
-    if (window.sadhanaAudio) {
-        window.sadhanaAudio.currentTime = 0;
-        window.sadhanaAudio.play();
-        updateSadhanaUI();
-    }
-};
-
-window.endSadhana = function () {
-    if (window.sadhanaAudio) {
-        // Go to end
-        window.sadhanaAudio.currentTime = window.sadhanaAudio.duration;
+    const el = getSadhanaAudio();
+    if (!el || !el.src) return;
+    if (el.paused) {
+        sadhanaPlay();
+    } else {
+        sadhanaPause();
     }
 };
 
@@ -1127,10 +1238,11 @@ function updateSadhanaUI() {
         }
     }
 
-    // Update Play/Pause Icon
+    // Update Play/Pause Icon (intent + element state)
     const playBtn = document.querySelector('.play-pause-btn');
-    if (playBtn && window.sadhanaAudio) {
-        playBtn.textContent = window.sadhanaAudio.paused ? '▶' : '⏸';
+    const audioEl = getSadhanaAudio();
+    if (playBtn && audioEl) {
+        playBtn.textContent = (sadhanaShouldPlay && !audioEl.paused) ? '⏸' : '▶';
     }
 }
 
