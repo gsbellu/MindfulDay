@@ -760,10 +760,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    background: var(--card-bg);
-    padding: 10px 20px;
-    border-radius: 30px;
+    background: none;
+    padding: 0;
 }
 
 .media-btn {
@@ -786,10 +784,10 @@ body {
 
 .play-pause-btn {
     /* Single large round play/pause control */
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    font-size: 28px;
+    font-size: 34px;
     background: #ffffff;
     box-shadow: none;
     color: #000;
