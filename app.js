@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V62-07.07.2026-10:34 PM";
+const ClientVersion = "V63-09.07.2026-10:55 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1095,6 +1095,19 @@ function stopSadhanaAudio() {
     state.sadhanaTimerStart = null;
 }
 
+// Sadhana practice modes. audio: null = silent practice (timer only).
+// Adding a meditation = one line here + the icon in sw.js ASSETS.
+const SADHANA_MODES = [
+    { id: 'shakthi', label: 'Shakthi', icon: 'shakthi.png', audio: 'Shakthi.mp3' },
+    { id: 'shambhavi', label: 'Shambhavi', icon: 'shambhavi.png', audio: 'Shambhavi.mp3' },
+    { id: '61points', label: '61 Points', icon: '61points.png', audio: '61PointsRelaxation.mp3' },
+    { id: 'shoonya', label: 'Shoonya', icon: 'shoonya.png', audio: null }
+];
+
+function getSadhanaMode(id) {
+    return SADHANA_MODES.find(m => m.id === id) || null;
+}
+
 function renderSadhanaView(container) {
     // Show standard icon for Sadhana too
     const standardIcon = document.getElementById('focusIcon');
@@ -1124,19 +1137,15 @@ function renderSadhanaView(container) {
     controls.style.display = 'flex';
 
     // Render Buttons and Media Controls
+    const modeButtons = SADHANA_MODES.map(m => `
+            <button class="sadhana-btn" data-mode="${m.id}" onclick="startSadhanaMode('${m.id}')">
+                <img src="./icons/${m.icon}" alt="${m.label}">
+            </button>`).join('');
+
     controls.innerHTML = `
-        <div class="sadhana-buttons">
-            <button class="sadhana-btn" onclick="startSadhanaMode('shakthi')">
-                <img src="./icons/shakthi.png" alt="Shakthi">
-            </button>
-            <button class="sadhana-btn" onclick="startSadhanaMode('shambhavi')">
-                <img src="./icons/shambhavi.png" alt="Shambhavi">
-            </button>
-            <button class="sadhana-btn" onclick="startSadhanaMode('shoonya')">
-                <img src="./icons/shoonya.png" alt="Shoonya">
-            </button>
+        <div class="sadhana-buttons">${modeButtons}
         </div>
-        
+
         <div class="media-controls" id="mediaControls">
             <button class="media-btn play-pause-btn" onclick="toggleSadhanaPlay()">▶</button>
         </div>
@@ -1146,13 +1155,16 @@ function renderSadhanaView(container) {
 }
 
 window.startSadhanaMode = function (mode) {
+    const entry = getSadhanaMode(mode);
+    if (!entry) return;
+
     state.sadhanaMode = mode;
     state.sadhanaTimerStart = Date.now(); // Start separate timer
 
     wireSadhanaAudio();
     const el = getSadhanaAudio();
 
-    if (mode === 'shoonya') {
+    if (!entry.audio) {
         // Silent practice: timer only, no audio
         sadhanaShouldPlay = false;
         if (el) {
@@ -1162,10 +1174,8 @@ window.startSadhanaMode = function (mode) {
         }
         releaseWakeLock();
     } else {
-        // Capitalize for filename: shakthi -> Shakthi.mp3
-        const filename = mode.charAt(0).toUpperCase() + mode.slice(1);
         if (el) {
-            el.src = `./audio/${filename}.mp3`; // (re)selecting restarts from 0
+            el.src = `./audio/${entry.audio}`; // (re)selecting restarts from 0
             sadhanaPlay();
             startSadhanaWatchdog();
         }
@@ -1173,7 +1183,7 @@ window.startSadhanaMode = function (mode) {
         if ('mediaSession' in navigator) {
             try {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: filename,
+                    title: entry.label,
                     artist: 'MindfulDay',
                     album: 'Sadhana'
                 });
@@ -1196,42 +1206,31 @@ window.toggleSadhanaPlay = function () {
 };
 
 function updateSadhanaUI() {
+    const entry = getSadhanaMode(state.sadhanaMode);
+    const modeLabel = entry ? entry.label.toUpperCase() : 'SADHANA';
+
     // Update Label to show Sub-Mode
     const labelEl = document.getElementById('focusLabel');
-    if (labelEl) {
-        if (state.sadhanaMode) {
-            labelEl.textContent = state.sadhanaMode.toUpperCase();
-        } else {
-            labelEl.textContent = 'SADHANA';
-        }
-    }
+    if (labelEl) labelEl.textContent = modeLabel;
 
     // Update Green Pill Label too
     const activityLabel = document.getElementById('currentActivityLabel');
-    if (activityLabel) {
-        if (state.sadhanaMode) {
-            activityLabel.textContent = state.sadhanaMode.toUpperCase();
-        } else {
-            activityLabel.textContent = 'SADHANA';
-        }
-    }
+    if (activityLabel) activityLabel.textContent = modeLabel;
 
     // Highlight Active Button
     const btns = document.querySelectorAll('.sadhana-btn');
     btns.forEach(btn => {
-        // logic to verify which button corresponds to state.sadhanaMode
-        const mode = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
-        if (mode === state.sadhanaMode) {
+        if (btn.dataset.mode === state.sadhanaMode) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
         }
     });
 
-    // Show/Hide Media Controls
+    // Show/Hide Media Controls (hidden for silent modes)
     const mediaControls = document.getElementById('mediaControls');
     if (mediaControls) {
-        if (state.sadhanaMode === 'shoonya' || !state.sadhanaMode) {
+        if (!entry || !entry.audio) {
             mediaControls.style.display = 'none';
         } else {
             mediaControls.style.display = 'flex';

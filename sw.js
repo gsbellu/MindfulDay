@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v62';
+const CACHE_NAME = 'mindfulday-v63';
 const ASSETS = [
     './',
     './index.html',
@@ -37,6 +37,7 @@ const ASSETS = [
     './icons/shakthi.png',
     './icons/shambhavi.png',
     './icons/shoonya.png',
+    './icons/61points.png',
     './sadhguru.json',
     './icons/sadhguru.png',
     './icons/sadhguru-sign.png',
