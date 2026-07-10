@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V63-09.07.2026-10:55 PM";
+const ClientVersion = "V64-10.07.2026-03:03 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -140,7 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Never act on a stale in-memory state after waking from background
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') refreshStateFromServer();
+        if (document.visibilityState === 'visible') refreshStateFromServer('foreground');
+    });
+
+    // When connectivity returns, reconcile: push local changes made
+    // offline, or adopt a newer server copy - whichever is fresher.
+    window.addEventListener('online', () => {
+        refreshStateFromServer('online');
     });
 
     // Fetch quotes
@@ -476,21 +482,38 @@ function applyRemoteCommand(key, cmd, attempt) {
 
 // Re-pull the server state when the app returns to the foreground so a
 // device waking from background never acts on (or shows) a stale copy.
-function refreshStateFromServer() {
-    if (!isSignedIn() || !firebaseSyncAttached) return;
-    stateRef.once('value').then((snapshot) => {
+// Two-way reconcile with the server: the NEWEST copy wins in BOTH
+// directions. If the local copy is newer (e.g. taps made offline
+// overnight - the SDK's unsent writes live only in memory and die with
+// the app), keep it and push it up instead of adopting stale server
+// data. Used at startup, on foreground return, and when connectivity
+// comes back.
+function refreshStateFromServer(tag) {
+    if (!isSignedIn() || !firebaseSyncAttached) return Promise.resolve();
+    return stateRef.once('value').then((snapshot) => {
         const fs = snapshot.val();
-        if (!fs) return;
-        if (fs.lastUpdate && state.lastUpdate && fs.lastUpdate <= state.lastUpdate) return;
+        const serverTs = fs ? (fs.lastUpdate || 0) : 0;
+        const localTs = state.lastUpdate || 0;
+
+        if (localTs > serverTs) {
+            console.log(`[sync:${tag}] Local state is newer than server - pushing local copy up.`);
+            saveState();
+            return;
+        }
+        if (!fs || serverTs === 0 || serverTs === localTs) return;
+
         const keepQuotes = state.quotes;
         state = fs;
         state.quotes = keepQuotes || [];
         delete state.quoteBag; // legacy synced bag, now device-local
         state.activitySettings = null;
         fetchActivitySettings(); // re-renders grid and restores the label
+        renderActivities();
         renderMonitorView('measureToday');
         renderMonitorView('measureYesterday');
-    }).catch(() => { });
+    }).catch((e) => {
+        console.log(`[sync:${tag}] refresh failed:`, e && e.message);
+    });
 }
 
 // Attach Firebase load + real-time listener. Called once, after sign-in.
@@ -499,26 +522,10 @@ function attachFirebaseSync() {
     firebaseSyncAttached = true;
     attachCommandListener();
 
-    // Load from Firebase (will override local if exists)
-    stateRef.once('value').then((snapshot) => {
-        const firebaseState = snapshot.val();
-        if (firebaseState) {
-            const keepQuotes = state.quotes;
-            state = firebaseState;
-            state.quotes = keepQuotes || [];
-            delete state.quoteBag; // legacy synced bag, now device-local
-            // AGAIN, force clear settings to use JSON file
-            state.activitySettings = null;
-
-            if (!state.activitySettings) {
-                state.activitySettings = [];
-            }
-            fetchActivitySettings(); // Refetch to be sure
-            renderActivities(); // Render defaults then update
-        }
-        deepLinkGate('firebase');
-    }).catch((error) => {
-        console.log('Firebase load failed, using local state:', error);
+    // Initial load: two-way reconcile (newest copy wins in both
+    // directions - a fresh local copy from an offline night must not be
+    // clobbered by stale server data).
+    refreshStateFromServer('startup').finally(() => {
         deepLinkGate('firebase');
     });
 
