@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V64-10.07.2026-03:03 PM";
+const ClientVersion = "V65-12.07.2026-02:28 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1311,6 +1311,75 @@ function updateMetaDisplay(activity) {
     if (el) el.textContent = activity.label;
 }
 
+// --- Overdue Awareness ---
+// The green timer pill turns amber, then red, when the running task
+// exceeds its expected duration; a popup asks whether you're really
+// still on it. Thresholds derive from the activity's target duration
+// in settings_activities.json: warn at 2x target, alert at 3x target
+// (tasks without a target: warn 3h, alert 4.5h).
+const OVERDUE_DEFAULT_MIN = 180;
+let overdueSnoozedUntil = 0;
+
+function getOverdueStatus(now) {
+    if (!state.currentActivityId || !state.currentActivityStartTime) return null;
+    const act = getActivities().find(a => a.id === state.currentActivityId);
+    if (!act) return null;
+
+    const elapsed = now - state.currentActivityStartTime;
+    const targetMin = act.duration || 0;
+    const warnMs = (targetMin > 0 ? targetMin * 2 : OVERDUE_DEFAULT_MIN) * 60000;
+    const alertMs = warnMs * 1.5;
+
+    if (elapsed >= alertMs) return { level: 'alert', act, elapsed };
+    if (elapsed >= warnMs) return { level: 'warn', act, elapsed };
+    return null;
+}
+
+function checkOverdue(now) {
+    const status = getOverdueStatus(now);
+
+    const pill = document.querySelector('.green-pill');
+    if (pill) {
+        pill.classList.toggle('overdue-warn', !!status && status.level === 'warn');
+        pill.classList.toggle('overdue-alert', !!status && status.level === 'alert');
+    }
+
+    if (!status || status.level !== 'alert') return;
+    if (document.visibilityState !== 'visible') return;
+    if (now < overdueSnoozedUntil) return;
+
+    const modal = document.getElementById('overdueModal');
+    if (!modal || modal.style.display !== 'none') return;
+    // Don't stack on top of the slide-to-confirm dialog
+    const confirmModal = document.getElementById('confirmModal');
+    if (confirmModal && confirmModal.style.display !== 'none') return;
+
+    document.getElementById('overdueIcon').src = `./icons/${status.act.icon}`;
+    document.getElementById('overdueTitle').textContent = `Still ${status.act.label}?`;
+    document.getElementById('overdueInfo').textContent =
+        `${status.act.label} has been running for ${formatDuration(status.elapsed)}.`;
+    modal.style.display = 'flex';
+
+    // Backdrop tap = short snooze
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            overdueSnoozedUntil = Date.now() + 15 * 60000;
+            modal.style.display = 'none';
+        }
+    };
+}
+
+window.overdueStillOnIt = function () {
+    overdueSnoozedUntil = Date.now() + 60 * 60000; // ask again in an hour
+    document.getElementById('overdueModal').style.display = 'none';
+};
+
+window.overdueChooseTask = function () {
+    document.getElementById('overdueModal').style.display = 'none';
+    hideFocusMode();
+    switchMode('run'); // land on the activity grid to pick the real task
+};
+
 function startTimerLoop() {
     requestAnimationFrame(timerTick);
 }
@@ -1343,6 +1412,8 @@ function timerTick() {
     updateConfirmTimers();
 
     updateLifeProgress();
+
+    checkOverdue(now);
 
     requestAnimationFrame(timerTick);
 }

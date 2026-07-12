@@ -140,6 +140,19 @@
         </div>
     </div>
 
+    <!-- Overdue Task Modal -->
+    <div class="confirm-modal" id="overdueModal" style="display: none;">
+        <div class="confirm-card">
+            <img id="overdueIcon" src="" alt="Activity" class="overdue-icon">
+            <div class="confirm-title" id="overdueTitle">Still on it?</div>
+            <div class="overdue-info" id="overdueInfo"></div>
+            <div class="overdue-buttons">
+                <button class="overdue-btn overdue-yes" onclick="overdueStillOnIt()">Yes, still on it</button>
+                <button class="overdue-btn overdue-switch" onclick="overdueChooseTask()">Switch task</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Slide-to-Confirm Modal -->
     <div class="confirm-modal" id="confirmModal" style="display: none;">
         <div class="confirm-card">
