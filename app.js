@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V65-12.07.2026-02:28 PM";
+const ClientVersion = "V66-12.07.2026-02:36 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -142,6 +142,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') refreshStateFromServer('foreground');
     });
+
+    // Desktop gap: a window covered by other windows (not minimized)
+    // counts as "visible" the whole time, so visibilitychange never
+    // fires when it is brought back to the front - but focus does.
+    window.addEventListener('focus', () => {
+        refreshStateFromServer('focus');
+    });
+
+    // Heartbeat: an open window that the OS froze and thawed may miss
+    // every event above; reconcile every 5 minutes so it can never
+    // drift far from reality.
+    setInterval(() => {
+        if (document.visibilityState === 'visible') refreshStateFromServer('heartbeat');
+    }, 5 * 60000);
 
     // When connectivity returns, reconcile: push local changes made
     // offline, or adopt a newer server copy - whichever is fresher.
