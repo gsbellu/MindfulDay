@@ -16,7 +16,8 @@
             "index-IMW1042835C.html",
             "icons/icons.pptx",
             "package.json",
-            "package-lock.json"
+            "package-lock.json",
+            "*.md"
         ],
         "headers": [
             {
