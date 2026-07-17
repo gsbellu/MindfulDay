@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V68-16.07.2026-12:47 PM";
+const ClientVersion = "V69-17.07.2026-02:40 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -865,12 +865,14 @@ function confirmStart(activity, atTime, opts) {
             hideFocusMode();
         }
 
-        // Show Quote Overlay with slight delay to appear "after" switch
-        // Show Quote Overlay with minimal delay (next tick) to ensure DOM update
+        // Show Quote Overlay with today's Isha calendar entries.
+        // Bounded wait: if the calendar is slow or unavailable, the
+        // quote appears alone after 3s.
         if (!opts || !opts.quiet) {
-            setTimeout(() => {
-                showQuoteOverlay();
-            }, 0);
+            Promise.race([
+                fetchTodaysIshaEvents(),
+                new Promise((resolve) => setTimeout(() => resolve(null), 3000))
+            ]).catch(() => null).then((events) => showQuoteOverlay(events));
         }
         return;
     }
@@ -2092,6 +2094,43 @@ function shuffleArray(array) {
     }
 }
 
+// --- Isha Calendar (shown with the Wake Up quote) ---
+// Public calendar, read via the Calendar API with the project API key
+// (the key must have the Calendar API allowed in Google Cloud console).
+// Cached per day; failures degrade silently to the plain quote.
+const ISHA_CALENDAR_ID = 'ishacalendar@gmail.com';
+const CALENDAR_API_KEY = 'AIzaSyBlLidQHcn4PQtW1v-tYlFLkT12NSTtdzY';
+
+function fetchTodaysIshaEvents() {
+    const today = new Date();
+    const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const cacheKey = 'ishaEvents:' + dayKey;
+
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return Promise.resolve(JSON.parse(cached));
+    } catch (e) { }
+
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const url = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(ISHA_CALENDAR_ID) + '/events'
+        + '?key=' + CALENDAR_API_KEY
+        + '&timeMin=' + encodeURIComponent(dayStart.toISOString())
+        + '&timeMax=' + encodeURIComponent(dayEnd.toISOString())
+        + '&singleEvents=true&orderBy=startTime&maxResults=10';
+
+    return fetch(url)
+        .then(r => {
+            if (!r.ok) throw new Error('calendar http ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            const events = (data.items || []).map(ev => ev.summary).filter(Boolean);
+            try { localStorage.setItem(cacheKey, JSON.stringify(events)); } catch (e) { }
+            return events;
+        });
+}
+
 // Device-local shuffle bag of quote indices. Lives in localStorage and
 // is persisted immediately after each draw. The old bag inside the
 // synced state was clobbered by every device sync and rewound by every
@@ -2120,7 +2159,7 @@ function nextQuote() {
     return pool[idx];
 }
 
-function showQuoteOverlay() {
+function showQuoteOverlay(calendarEvents) {
     const randomQuote = nextQuote();
 
     // Handle both object structure and simple string
@@ -2128,6 +2167,28 @@ function showQuoteOverlay() {
 
     let overlay = document.getElementById('quoteOverlay');
     if (!overlay) return;
+
+    // Isha calendar section (Wake Up mornings); built with DOM nodes,
+    // never markup, since event titles come from an external calendar.
+    const calEl = document.getElementById('quoteCalendar');
+    if (calEl) {
+        calEl.innerHTML = '';
+        if (calendarEvents && calendarEvents.length) {
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'quote-cal-date';
+            dateDiv.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+            calEl.appendChild(dateDiv);
+            calendarEvents.forEach((title) => {
+                const ev = document.createElement('div');
+                ev.className = 'quote-cal-event';
+                ev.textContent = title;
+                calEl.appendChild(ev);
+            });
+            calEl.style.display = 'block';
+        } else {
+            calEl.style.display = 'none';
+        }
+    }
 
     const textEl = document.getElementById('quoteText');
     const authorImg = document.getElementById('quoteAuthorImg');

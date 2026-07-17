@@ -922,6 +922,31 @@ body {
     text-decoration: underline;
 }
 
+/* --- Isha Calendar in the Wake Up quote card --- */
+.quote-calendar {
+    width: 100%;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e5e5ea;
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+.quote-cal-date {
+    font-size: 13px;
+    font-weight: 700;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.quote-cal-event {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1c1c1e;
+    padding: 3px 0;
+}
+
 /* --- Overdue Awareness --- */
 .green-pill.overdue-warn {
     background: #c98a00;
