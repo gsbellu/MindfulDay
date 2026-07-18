@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V69-17.07.2026-02:40 PM";
+const ClientVersion = "V70-18.07.2026-03:07 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -2094,6 +2094,65 @@ function shuffleArray(array) {
     }
 }
 
+// --- Push Notifications (Web Push / VAPID) ---
+// Subscriptions are stored per device in RTDB /pushSubs (owner-only);
+// Cloud Functions send the actual pushes.
+const VAPID_PUBLIC_KEY = 'BIwhlC6aQXGcLz26tVB6SoKQnPA_D0h2eO93jfSuwmXOCgZMcApXNdQnxdTwcIonHqeLMoqQJ0784h3yykUOLfI';
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    const arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+}
+
+function updatePushStatus(msg) {
+    const el = document.getElementById('pushStatus');
+    if (el) el.textContent = msg;
+}
+
+window.enablePush = async function () {
+    try {
+        if (!isSignedIn()) {
+            alert('Sign in first - notifications are tied to your account.');
+            return;
+        }
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Push is not supported in this browser. On iPhone the app must be installed to the Home Screen (iOS 16.4+).');
+            return;
+        }
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+            updatePushStatus('Permission was not granted.');
+            return;
+        }
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await window.firebaseDB.ref('pushSubs/' + DEVICE_ID).set(JSON.parse(JSON.stringify(sub)));
+        updatePushStatus('Notifications enabled on this device ✓');
+    } catch (e) {
+        updatePushStatus('Enable failed: ' + e.message);
+    }
+};
+
+window.sendTestPush = async function () {
+    if (!isSignedIn()) {
+        alert('Sign in first.');
+        return;
+    }
+    try {
+        await window.firebaseDB.ref('pushTest').set({ requestedAt: Date.now(), by: DEVICE_ID });
+        updatePushStatus('Test requested - LOCK YOUR PHONE NOW. The notification arrives in ~15 seconds.');
+    } catch (e) {
+        updatePushStatus('Test failed: ' + e.message);
+    }
+};
+
 // --- Isha Calendar (shown with the Wake Up quote) ---
 // Public calendar, read via the Calendar API with the project API key
 // (the key must have the Calendar API allowed in Google Cloud console).
@@ -2267,6 +2326,21 @@ async function showSettings() {
                     <label class="settings-label">End:</label>
                     <input type="date" id="cdEnd" class="settings-input" value="${end}">
                 </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-header">Notifications</div>
+            <p id="pushStatus" style="font-size: 13px; color: #8e8e93; margin: 0 0 10px;">${(typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'Permission granted on this device.' : 'Not enabled on this device yet.'}</p>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="enablePush()"
+                        style="flex: 1; padding: 12px; background: #0a84ff; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    Enable
+                </button>
+                <button onclick="sendTestPush()"
+                        style="flex: 1; padding: 12px; background: #3a3a3c; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    Send test 🔔
+                </button>
             </div>
         </div>
 

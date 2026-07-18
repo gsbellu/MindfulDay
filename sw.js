@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v69';
+const CACHE_NAME = 'mindfulday-v70';
 const ASSETS = [
     './',
     './index.html',
@@ -105,4 +105,35 @@ self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
+});
+
+// --- Web Push ---
+self.addEventListener('push', (event) => {
+    let data = {};
+    try {
+        data = event.data.json();
+    } catch (e) {
+        data = { title: 'MindfulDay', body: event.data ? event.data.text() : '' };
+    }
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'MindfulDay', {
+            body: data.body || '',
+            icon: './lotus-icon.png',
+            badge: './lotus-icon.png',
+            data: { url: './' }
+        })
+    );
+});
+
+// Tapping the notification opens (or focuses) the installed app
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+            for (const client of list) {
+                if ('focus' in client) return client.focus();
+            }
+            return clients.openWindow('./');
+        })
+    );
 });
