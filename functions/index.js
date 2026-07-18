@@ -4,6 +4,7 @@
  */
 
 const { onValueWritten } = require('firebase-functions/v2/database');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const webpush = require('web-push');
@@ -35,6 +36,54 @@ async function sendToAll(payloadObj) {
     }
     return results;
 }
+
+// Mindful reminder: any task except Sleep running for more than one
+// hour gets a nudge, repeated hourly while the same task session keeps
+// running. Cadence is tracked in /pushMeta/mindfulReminder.
+exports.mindfulreminder = onSchedule(
+    {
+        schedule: 'every 10 minutes',
+        timeZone: 'Asia/Kolkata',
+        region: 'asia-southeast1',
+        secrets: [VAPID_PRIVATE_KEY]
+    },
+    async () => {
+        const HOUR = 3600 * 1000;
+        const stateSnap = await admin.database().ref('/state').get();
+        const state = stateSnap.val();
+        if (!state || !state.currentActivityId || !state.currentActivityStartTime) return;
+        if (state.currentActivityId === 'sleep') return; // the one exception
+
+        const now = Date.now();
+        const elapsed = now - state.currentActivityStartTime;
+        if (elapsed < HOUR) return;
+
+        // One reminder per hour per task session
+        const sessionKey = state.currentActivityId + ':' + state.currentActivityStartTime;
+        const metaRef = admin.database().ref('/pushMeta/mindfulReminder');
+        const meta = (await metaRef.get()).val() || {};
+        if (meta.sessionKey === sessionKey && now - (meta.notifiedAt || 0) < HOUR) return;
+
+        webpush.setVapidDetails(
+            'mailto:gs.bellu@gmail.com',
+            VAPID_PUBLIC_KEY,
+            VAPID_PRIVATE_KEY.value()
+        );
+
+        const label = state.currentActivityId.charAt(0).toUpperCase() + state.currentActivityId.slice(1);
+        const hrs = Math.floor(elapsed / HOUR);
+        const mins = Math.floor((elapsed % HOUR) / 60000);
+        const dur = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+        const results = await sendToAll({
+            title: 'Mindful reminder',
+            body: `Again, missed to be mindful? Don't worry, All is Well! (${label} · ${dur})`
+        });
+        console.log('Mindful reminder:', sessionKey, dur, '->', results.join(', '));
+
+        await metaRef.set({ sessionKey, notifiedAt: now });
+    }
+);
 
 // Test push: the app writes /pushTest, we wait ~12s (time to lock the
 // phone), then notify every device and clean up the request.
