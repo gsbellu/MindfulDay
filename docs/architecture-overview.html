@@ -1,0 +1,506 @@
+<title>MindfulDay — Architecture</title>
+<style>
+  :root {
+    --bg: #f1f2f5;
+    --panel: #ffffff;
+    --panel-edge: #dcdee4;
+    --ink: #23262e;
+    --muted: #5c6270;
+    --accent: #a8701f;
+    --accent-soft: #f3e7d2;
+    --good: #3c7a4c;
+    --good-soft: #e2efe5;
+    --warn: #a8701f;
+    --warn-soft: #f3e7d2;
+    --crit: #b0413a;
+    --crit-soft: #f5e2e0;
+    --code-bg: #e9eaef;
+    --dead: #c9cbd3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141b;
+      --panel: #1a1d26;
+      --panel-edge: #2a2e3a;
+      --ink: #e6e4dc;
+      --muted: #9aa0ad;
+      --accent: #d99a3d;
+      --accent-soft: #2b2417;
+      --good: #6fae7c;
+      --good-soft: #1a2a1f;
+      --warn: #d99a3d;
+      --warn-soft: #2b2417;
+      --crit: #d0655c;
+      --crit-soft: #2f1c1a;
+      --code-bg: #232733;
+      --dead: #000000;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141b; --panel: #1a1d26; --panel-edge: #2a2e3a; --ink: #e6e4dc;
+    --muted: #9aa0ad; --accent: #d99a3d; --accent-soft: #2b2417;
+    --good: #6fae7c; --good-soft: #1a2a1f; --warn: #d99a3d; --warn-soft: #2b2417;
+    --crit: #d0655c; --crit-soft: #2f1c1a; --code-bg: #232733; --dead: #000000;
+  }
+  :root[data-theme="light"] {
+    --bg: #f1f2f5; --panel: #ffffff; --panel-edge: #dcdee4; --ink: #23262e;
+    --muted: #5c6270; --accent: #a8701f; --accent-soft: #f3e7d2;
+    --good: #3c7a4c; --good-soft: #e2efe5; --warn: #a8701f; --warn-soft: #f3e7d2;
+    --crit: #b0413a; --crit-soft: #f5e2e0; --code-bg: #e9eaef; --dead: #c9cbd3;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+  h1, h2, h3 {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    font-weight: 600;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: 2.4rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.55rem; margin-bottom: 0.25rem; }
+  h3 { font-size: 1.1rem; }
+  p { margin: 0.6rem 0 0; max-width: 65ch; }
+  a { color: var(--accent); }
+  code, .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-size: 0.86em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  section { display: block; }
+
+  /* Header */
+  header .lotus { display: block; margin-bottom: 1rem; }
+  header .sub { color: var(--muted); font-size: 1.05rem; margin-top: 0.75rem; }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.6rem;
+    margin-top: 1.4rem;
+    padding: 0;
+    list-style: none;
+  }
+  .facts li {
+    border: 1px solid var(--panel-edge);
+    background: var(--panel);
+    border-radius: 999px;
+    padding: 0.25rem 0.8rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .facts li strong { color: var(--ink); font-weight: 600; }
+
+  /* Panels for diagrams / wide content */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 1.1rem 1.2rem;
+    margin-top: 1.1rem;
+    overflow-x: auto;
+  }
+  .panel .caption {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.7rem;
+  }
+  pre.mermaid { margin: 0; display: flex; justify-content: center; }
+
+  /* Anatomy figure */
+  .anatomy { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+  .anatomy svg { flex: 0 0 auto; }
+  .anatomy .legend { flex: 1 1 16rem; min-width: 15rem; }
+  .legend dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 0.75rem; font-size: 0.9rem; }
+  .legend dt { font-weight: 600; white-space: nowrap; }
+  .legend dt .swatch {
+    display: inline-block; width: 0.7em; height: 0.7em; border-radius: 2px;
+    margin-right: 0.45em; vertical-align: baseline; border: 1px solid var(--panel-edge);
+  }
+  .legend dd { margin: 0; color: var(--muted); }
+
+  /* Overdue pills */
+  .pills { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem; }
+  .pill-card { flex: 1 1 11rem; min-width: 11rem; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    border-radius: 999px; padding: 0.35rem 1rem;
+    font-size: 0.9rem; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill .dot { width: 0.55em; height: 0.55em; border-radius: 50%; background: currentColor; }
+  .pill.ok   { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.crit { background: var(--crit-soft); color: var(--crit); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) { .pill.crit { animation: none; } }
+  .pill-card .note { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.5rem 0.9rem 0.5rem 0; vertical-align: top; border-bottom: 1px solid var(--panel-edge); }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+
+  /* Deploy steps */
+  .steps { list-style: none; margin: 1.1rem 0 0; padding: 0; counter-reset: step; display: flex; flex-direction: column; gap: 0.9rem; }
+  .steps li { counter-increment: step; display: flex; gap: 0.9rem; align-items: baseline; }
+  .steps li::before {
+    content: counter(step);
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    font-size: 1.05rem; color: var(--accent);
+    flex: 0 0 1.4rem; text-align: center;
+    border: 1px solid var(--panel-edge); border-radius: 50%;
+    line-height: 1.4rem; height: 1.4rem; align-self: flex-start; margin-top: 0.15rem;
+    background: var(--panel);
+  }
+  .steps .what { font-weight: 600; }
+  .steps .how { color: var(--muted); font-size: 0.88rem; }
+
+  /* Quirk / decision cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.9rem; margin-top: 1.1rem; }
+  .card {
+    background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px;
+    padding: 0.9rem 1rem;
+  }
+  .card h3 { font-size: 0.98rem; margin-bottom: 0.35rem; }
+  .card p { font-size: 0.87rem; color: var(--muted); margin-top: 0; }
+  .card.declined { border-left: 3px solid var(--crit); }
+  .card.declined .tag, .card .tag {
+    display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--crit); margin-bottom: 0.3rem;
+  }
+  ul.tight { margin: 0.6rem 0 0; padding-left: 1.2rem; }
+  ul.tight li { margin-top: 0.3rem; }
+  ul.tight li::marker { color: var(--accent); }
+</style>
+
+<div class="wrap">
+
+<header>
+  <svg class="lotus" width="44" height="34" viewBox="0 0 44 34" aria-hidden="true">
+    <g fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 30 C17 24 17 12 22 4 C27 12 27 24 22 30 Z"/>
+      <path d="M22 30 C14 28 8 21 6 12 C14 14 20 20 22 30 Z"/>
+      <path d="M22 30 C30 28 36 21 38 12 C30 14 24 20 22 30 Z"/>
+      <path d="M22 30 C11 31 4 27 1 22"/>
+      <path d="M22 30 C33 31 40 27 43 22"/>
+    </g>
+  </svg>
+  <h1>MindfulDay — Architecture Overview</h1>
+  <p class="sub">A personal, single-user mindfulness &amp; task-tracker PWA. Its purpose: a mindful
+  pause at every task transition. One user, two installed devices — iPhone and Windows desktop.
+  Vanilla HTML/JS/CSS, no framework, no build step.</p>
+  <ul class="facts">
+    <li><strong>V70</strong> · Jul 2026</li>
+    <li>Firebase project <strong>mindfulday-gsb</strong></li>
+    <li>RTDB · <strong>asia-southeast1</strong></li>
+    <li>Blaze plan · expected bill ₹0</li>
+    <li><strong>mindfulday-gsb.web.app</strong></li>
+  </ul>
+</header>
+
+<section>
+  <div class="eyebrow">The system</div>
+  <h2>Everything meets at one JSON blob</h2>
+  <p>Static files are served by Firebase Hosting; all app state lives as a single JSON blob at
+  <code>/state</code> in the Realtime Database. Google sign-in gates every read and write to one
+  email address. Two Cloud Functions handle push; the Isha calendar comes from a public Google
+  Calendar. Each device keeps a full copy of state in <code>localStorage</code> as its offline vault.</p>
+  <div class="panel">
+<pre class="mermaid">
+flowchart LR
+  subgraph Devices
+    A["iPhone PWA"]
+    B["Windows PWA"]
+  end
+  subgraph Firebase["Firebase · mindfulday-gsb"]
+    H["Hosting<br/>static app"]
+    D[("RTDB<br/>/state · /pushSubs<br/>/pushTest · /pushMeta")]
+    F["Functions (Node 20, 2nd gen)<br/>sendtestpush · mindfulreminder"]
+    S["Secret Manager<br/>VAPID_PRIVATE_KEY"]
+  end
+  C["Google Calendar API<br/>ishacalendar@gmail.com"]
+  P["Web Push service"]
+  A &lt;--&gt;|"Google sign-in<br/>rules: one email only"| D
+  B &lt;--&gt; D
+  H --> A
+  H --> B
+  A -.->|"quotes + calendar cache<br/>in localStorage"| A
+  C -.-> A
+  D --> F
+  F --> S
+  F -->|"VAPID Web Push<br/>(not FCM)"| P
+  P --> A
+  P --> B
+</pre>
+    <p class="caption">Auth: compat SDK Google sign-in; database rules restrict everything to
+    <code>auth.token.email === 'gs.bellu@gmail.com'</code>. The repo is public — no secrets ever land in it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">The screen</div>
+  <h2>One page, five areas</h2>
+  <p><code>index.html</code> is a single page. Modals and overlays (slide-to-confirm, settings,
+  sadhana player, quote card) sit on top of five fixed areas. The dark theme is not a taste choice —
+  it hides an unpaintable iOS band (below).</p>
+  <div class="panel">
+    <div class="anatomy">
+      <svg width="190" height="360" viewBox="0 0 190 360" role="img" aria-label="Phone screen split into five stacked areas with a dead zone at the bottom">
+        <rect x="4" y="4" width="182" height="352" rx="22" fill="var(--bg)" stroke="var(--panel-edge)" stroke-width="2"/>
+        <rect x="16" y="20" width="158" height="34" rx="6" fill="var(--accent-soft)"/>
+        <text x="95" y="41" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="ui-monospace,monospace">title-area</text>
+        <rect x="16" y="60" width="158" height="150" rx="6" fill="var(--panel)" stroke="var(--panel-edge)"/>
+        <text x="95" y="130" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="ui-monospace,monospace">main-area</text>
+        <text x="95" y="146" text-anchor="middle" font-size="9" fill="var(--muted)">20 activity tiles</text>
+        <rect x="16" y="216" width="158" height="42" rx="6" fill="var(--good-soft)"/>
+        <text x="95" y="241" text-anchor="middle" font-size="11" fill="var(--good)" font-family="ui-monospace,monospace">timer-area</text>
+        <rect x="16" y="264" width="158" height="30" rx="6" fill="var(--panel)" stroke="var(--panel-edge)"/>
+        <text x="95" y="283" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="ui-monospace,monospace">progress-area</text>
+        <rect x="16" y="300" width="158" height="28" rx="6" fill="var(--panel)" stroke="var(--panel-edge)"/>
+        <text x="95" y="318" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="ui-monospace,monospace">navigation-area</text>
+        <rect x="6" y="334" width="178" height="20" rx="0" fill="var(--dead)"/>
+        <text x="95" y="348" text-anchor="middle" font-size="9" fill="var(--muted)">iOS dead zone</text>
+      </svg>
+      <div class="legend">
+        <dl>
+          <dt><span class="swatch" style="background:var(--accent-soft)"></span>Title</dt>
+          <dd>Date, settings gear (orange badge when a newer version is live)</dd>
+          <dt><span class="swatch" style="background:var(--panel)"></span>Main</dt>
+          <dd>Activity tiles from <code>settings_activities.json</code>; the running tile carries the overdue tint</dd>
+          <dt><span class="swatch" style="background:var(--good-soft)"></span>Timer</dt>
+          <dd>Current task + elapsed time (the green pill)</dd>
+          <dt><span class="swatch" style="background:var(--panel)"></span>Progress</dt>
+          <dd>Life-progress countdown bar (per-device, not synced)</dd>
+          <dt><span class="swatch" style="background:var(--dead)"></span>Dead zone</dt>
+          <dd>iOS standalone viewport stops ~59&nbsp;px short of screen bottom (measured 852&nbsp;vs&nbsp;793); iOS never paints there. Dark theme makes the band invisible — a light theme resurrects the “black patch”.</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Sync — hard-won, do not regress</div>
+  <h2>Newest copy wins, in both directions</h2>
+  <p>iOS and Windows freeze background PWAs; the SDK’s unsent writes die with the process, so
+  <code>localStorage</code> is the offline vault and every saved state carries
+  <code>lastUpdate</code> (ms) + <code>lastUpdatedBy</code> (device id). All reconciliation goes
+  through <code>refreshStateFromServer(tag)</code> — never a raw <code>once()</code> adopt.</p>
+  <div class="panel">
+<pre class="mermaid">
+flowchart TD
+  T["Trigger: startup · tab visible · window focus<br/>'online' event · 5-min heartbeat"] --> R["refreshStateFromServer(tag)"]
+  R --> C{"Compare lastUpdate"}
+  C -->|"local newer"| U["Push local up"]
+  C -->|"server newer"| A["Adopt server copy"]
+  C -->|"server empty"| S["Seed from local"]
+  W["saveState()"] --> X["RTDB transaction —<br/>refuses to clobber a newer server copy;<br/>strips quotes / quoteBag / activitySettings"]
+  L["on('value') listener"] --> G["Ignores remote states<br/>older than local"]
+</pre>
+    <p class="caption">Historic bugs this design killed: a stale desktop showing a 42-hour-old task,
+    and offline overnight taps erased by an unguarded startup adopt.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Awareness</div>
+  <h2>Overdue is ambient only</h2>
+  <p>No popups — explicitly rejected as “a dialog asking a question the app can’t act on”. The
+  running tile and the green pill simply change colour, gated on <code>deepLinkReady.firebase</code>
+  so stale pre-sync state never flashes red. Popups are reserved for push notifications.</p>
+  <div class="panel">
+    <div class="pills">
+      <div class="pill-card">
+        <span class="pill ok"><span class="dot"></span>Work · 0:47</span>
+        <p class="note">Under 2× target — calm green.</p>
+      </div>
+      <div class="pill-card">
+        <span class="pill warn"><span class="dot"></span>Work · 2:10</span>
+        <p class="note">Past 2× target — amber.</p>
+      </div>
+      <div class="pill-card">
+        <span class="pill crit"><span class="dot"></span>Work · 3:24</span>
+        <p class="note">Past 3× target — red, pulsing. Tasks with no target: 3&nbsp;h / 4.5&nbsp;h.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Notifications</div>
+  <h2>Web Push with VAPID — deliberately not FCM</h2>
+  <p>The public key lives in <code>app.js</code>; the private key only in Secret Manager
+  (<code>VAPID_PRIVATE_KEY</code> — the repo is public). Subscriptions are stored per device at
+  <code>/pushSubs/&lt;deviceId&gt;</code>. This is his one “special” notification — the phone is
+  otherwise on silent with all reminders off.</p>
+  <div class="panel">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as User (Settings)
+  participant App as app.js
+  participant DB as RTDB
+  participant Fn as mindfulreminder<br/>(every 10 min, Asia/Kolkata)
+  participant SW as sw.js
+  U->>App: Enable notifications
+  App->>DB: subscription → /pushSubs/&lt;deviceId&gt;
+  Fn->>DB: read /state + /pushMeta
+  Note over Fn: any task except sleep<br/>running > 1 h? max hourly per session
+  Fn->>SW: Web Push (VAPID key from Secret Manager)
+  SW->>U: "Mindful reminder — All is Well! (Task · dur)"
+  U->>SW: tap notification
+  SW->>App: opens installed PWA
+</pre>
+    <p class="caption"><code>sendtestpush</code> is the second function: Settings → “Send test 🔔”
+    writes <code>/pushTest</code>, and the function waits 12&nbsp;s so the phone can be locked first.
+    Morning starter / wind-down / evening recap were discussed but never built.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Features</div>
+  <h2>What the app does, and why it does it that way</h2>
+  <ul class="tight">
+    <li><strong>Activities</strong> — 20 tiles defined in <code>settings_activities.json</code> (id, label,
+    icon, target minutes). Switching goes through a slide-to-confirm modal into
+    <code>confirmStart(activity, atTime, opts)</code>; <code>atTime</code> backdates,
+    <code>opts.quiet</code> suppresses the quote. <em>Wake&nbsp;Up</em> rotates the day (history → yesterday).</li>
+    <li><strong>Quotes</strong> — 135 deduped Sadhguru quotes; a device-local shuffle bag
+    (<code>quoteBagV2</code> in localStorage) that must never re-enter synced state — syncing it once
+    caused repeats. The Wake&nbsp;Up card also shows today’s Isha calendar entries.</li>
+    <li><strong>Isha calendar</strong> — public calendar via Calendar API v3, keyed by the Firebase web API
+    key (origin-restricted, so local testing needs a <code>Referer</code> header). Cached per day; degrades silently.</li>
+    <li><strong>Sadhana player</strong> — <code>SADHANA_MODES</code> config (audio:null = silent Shoonya);
+    a persistent <code>&lt;audio&gt;</code> element, an intent flag with a 5-second watchdog that resumes at
+    position, screen Wake Lock, Media Session, one round play/pause button. Adding a meditation is one
+    config line + an icon in the SW asset list.</li>
+    <li><strong>Siri / deep links</strong> — <code>?switch=&lt;id-or-label&gt;</code> does a quiet switch after
+    the settings + firebase readiness gates; Shortcuts open the URL (a browser flash is accepted).</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">The code</div>
+  <h2>Key files</h2>
+  <div class="panel">
+    <table>
+      <thead><tr><th>File</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>app.js</code></td><td>All logic, ~2,500 lines — state, sync, tiles, timers, quotes, sadhana, push, deep links.</td></tr>
+        <tr><td><code>index.html</code></td><td>The single page: five areas plus modals and overlays.</td></tr>
+        <tr><td><code>style.css</code></td><td>Dark theme (structural, not cosmetic — see the dead zone).</td></tr>
+        <tr><td><code>sw.js</code></td><td>Precache list + <code>CACHE_NAME</code> (auto-stamped); <code>push</code> / <code>notificationclick</code> handlers. Never touches audio.</td></tr>
+        <tr><td><code>settings_activities.json</code></td><td>Source of truth for the 20 activity tiles.</td></tr>
+        <tr><td><code>sadhguru.json</code></td><td>135 quotes, deduped.</td></tr>
+        <tr><td><code>functions/index.js</code></td><td><code>sendtestpush</code> + <code>mindfulreminder</code> (2nd-gen, Node 20, asia-southeast1).</td></tr>
+        <tr><td><code>database.rules.json</code></td><td>RTDB rules — everything locked to one email.</td></tr>
+        <tr><td><code>update_version.js</code></td><td>Stamps the three version markers in lockstep.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Shipping</div>
+  <h2>Deploy: three stamps that must move together</h2>
+  <p>Because the update path is the service worker, <code>version.json</code>, the
+  <code>ClientVersion</code> in app.js, and <code>CACHE_NAME</code> in sw.js must change on every
+  deploy — <code>update_version.js</code> stamps all three; <code>deploy.bat</code> automates the
+  whole sequence.</p>
+  <ol class="steps">
+    <li><div><span class="what">Stamp</span> — <span class="how"><code>node update_version.js</code></span></div></li>
+    <li><div><span class="what">Deploy</span> — <span class="how"><code>npx -y firebase-tools deploy --only hosting --project mindfulday-gsb</code> (functions and database rules deploy separately)</span></div></li>
+    <li><div><span class="what">Commit &amp; push</span> — <span class="how"><code>git add -A &amp;&amp; git commit &amp;&amp; git push origin main</code></span></div></li>
+    <li><div><span class="what">Verify</span> — <span class="how"><code>curl -s https://mindfulday-gsb.web.app/version.json</code>. Ignore stale “Authentication Error” lines mid-deploy; trust “Deploy complete” + this curl.</span></div></li>
+  </ol>
+  <p>On the device: <code>location.reload(true)</code> is a no-op on iOS, so <code>performUpdate</code>
+  clears all caches then plain-reloads. Settings shows Client vs Server version; an orange badge on
+  the gear means the server is newer.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Terrain</div>
+  <h2>iOS PWA quirks — measured, not theorised</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Audio is never intercepted</h3>
+      <p>iOS streams audio via HTTP Range requests; a cached full-body 200 kills playback mid-file
+      (the “stops after 10 min” bug). The SW fetch handler bails on <code>destination === 'audio'</code>
+      or <code>/audio/</code> URLs.</p>
+    </div>
+    <div class="card">
+      <h3>Touch events lie</h3>
+      <p><code>touchend</code> has an empty <code>e.touches</code> — use <code>changedTouches</code>.
+      Handle <code>touchcancel</code>, or the confirm slider sticks mid-way.</p>
+    </div>
+    <div class="card">
+      <h3>The dead zone is structural</h3>
+      <p>Container is <code>position:fixed; top:0; height:100%</code>. In standalone mode the home
+      indicator lives inside the dead zone, so a media query drops the safe-area padding there.</p>
+    </div>
+    <div class="card">
+      <h3>On-device debugging</h3>
+      <p>A <code>VP …</code> viewport-geometry line goes to Settings → Debug Log — the tool for layout
+      debugging on the actual phone.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Boundaries</div>
+  <h2>Deliberate decisions and declined ideas</h2>
+  <div class="cards">
+    <div class="card declined">
+      <span class="tag">Declined</span>
+      <h3>Unauthenticated command queue</h3>
+      <p>Token-protected <code>/commands/&lt;token&gt;/queue</code> — client code still exists in app.js,
+      but the unauth-write rule was refused. Never deploy it without fresh explicit consent.</p>
+    </div>
+    <div class="card">
+      <span class="tag" style="color:var(--muted)">Deferred</span>
+      <h3>Native iOS app</h3>
+      <p>No App Store, no $99/yr for now. If ever: a Capacitor wrap, never a rewrite. Free-Apple-ID
+      sideloading rejected (no push entitlement, 7-day expiry, no Mac).</p>
+    </div>
+    <div class="card">
+      <span class="tag" style="color:var(--muted)">By design</span>
+      <h3>Per-device state</h3>
+      <p>Quote shuffle bag and countdown-bar settings stay in localStorage, unsynced — known and accepted.</p>
+    </div>
+    <div class="card">
+      <span class="tag" style="color:var(--muted)">Legacy</span>
+      <h3>Old homes</h3>
+      <p><code>gsbellu.github.io</code> is legacy — don’t maintain it. The old Firebase project
+      <code>mindfulday-timer</code> is inaccessible — never deploy there.</p>
+    </div>
+  </div>
+</section>
+
+</div>
