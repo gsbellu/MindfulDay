@@ -37,12 +37,13 @@ async function sendToAll(payloadObj) {
     return results;
 }
 
-// Mindful reminder: any task except Sleep running for more than one
-// hour gets a nudge, repeated hourly while the same task session keeps
-// running. Cadence is tracked in /pushMeta/mindfulReminder.
+// Mindful reminder: the check itself runs once an hour, and notifies
+// only if the current task (Sleep excepted) has been running for more
+// than an hour. So at most one reminder per hour, whatever happens in
+// between. Cadence is tracked in /pushMeta/mindfulReminder.
 exports.mindfulreminder = onSchedule(
     {
-        schedule: 'every 10 minutes',
+        schedule: 'every 60 minutes',
         timeZone: 'Asia/Kolkata',
         region: 'asia-southeast1',
         secrets: [VAPID_PRIVATE_KEY]
@@ -58,11 +59,14 @@ exports.mindfulreminder = onSchedule(
         const elapsed = now - state.currentActivityStartTime;
         if (elapsed < HOUR) return;
 
-        // One reminder per hour per task session
+        // Belt and braces: never two reminders inside an hour, even if
+        // the scheduler fires early/twice or a run is retried. The 55min
+        // tolerance keeps normal scheduler jitter from skipping an hour.
+        const MIN_GAP = 55 * 60000;
         const sessionKey = state.currentActivityId + ':' + state.currentActivityStartTime;
         const metaRef = admin.database().ref('/pushMeta/mindfulReminder');
         const meta = (await metaRef.get()).val() || {};
-        if (meta.sessionKey === sessionKey && now - (meta.notifiedAt || 0) < HOUR) return;
+        if (now - (meta.notifiedAt || 0) < MIN_GAP) return;
 
         webpush.setVapidDetails(
             'mailto:gs.bellu@gmail.com',

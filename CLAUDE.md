@@ -68,7 +68,7 @@ Verify after deploy: `curl -s https://mindfulday-gsb.web.app/version.json`.
 - Settings → Notifications: **Enable** (permission+subscribe) and **Send test 🔔** (writes `/pushTest`; function waits 12s so he can lock the phone).
 - `functions/index.js`:
   - `sendtestpush` — RTDB trigger on `/pushTest`.
-  - `mindfulreminder` — scheduled every 10 min (Asia/Kolkata): any task except `sleep` running >1h → push "Mindful reminder — Again, missed to be mindful? Don't worry, All is Well! (<Task> · <dur>)", max hourly per task session (cadence in `/pushMeta/mindfulReminder`).
+  - `mindfulreminder` — scheduled **every 60 min** (Asia/Kolkata): any task except `sleep` running >1h → push "Mindful reminder — Again, missed to be mindful? Don't worry, All is Well! (<Task> · <dur>)". The hourly *check* is the throttle (was every 10 min — too noisy, user asked to moderate); a 55-min `MIN_GAP` guard in `/pushMeta/mindfulReminder` blocks duplicates across all sessions on scheduler jitter/retries.
 - Ideas discussed but NOT built: morning starter, wind-down, evening recap.
 - Native iOS app: discussed, DEFERRED. Decision: no App Store, no $99/yr for now; if ever, Capacitor wrap (never a rewrite). Free-Apple-ID sideloading rejected (no push entitlement, 7-day expiry, no Mac).
 
