@@ -2,3 +2,4 @@ node_modules/
 .claude/
 .firebase/
 firebase-debug.log
+project-info.json
