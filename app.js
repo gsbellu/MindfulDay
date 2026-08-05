@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V73-05.08.2026-09:29 PM";
+const ClientVersion = "V74-05.08.2026-09:56 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -241,6 +241,8 @@ function fetchActivitySettings() {
             console.log("Loaded activity settings:", data);
             state.activitySettings = data;
             renderActivities();
+            renderTimelineView('measureToday');
+            renderTimelineView('measureYesterday');
 
             // Restore Label if we have a valid current activity (Fix for missing label on reload)
             if (state.currentActivityId) {
@@ -523,8 +525,8 @@ function refreshStateFromServer(tag) {
         state.activitySettings = null;
         fetchActivitySettings(); // re-renders grid and restores the label
         renderActivities();
-        renderMonitorView('measureToday');
-        renderMonitorView('measureYesterday');
+        renderTimelineView('measureToday');
+        renderTimelineView('measureYesterday');
     }).catch((e) => {
         console.log(`[sync:${tag}] refresh failed:`, e && e.message);
     });
@@ -563,8 +565,8 @@ function attachFirebaseSync() {
             state.activitySettings = null;
             fetchActivitySettings();
 
-            renderMonitorView('measureToday');
-            renderMonitorView('measureYesterday');
+            renderTimelineView('measureToday');
+            renderTimelineView('measureYesterday');
             updateMetaDisplay({ label: '' }); // potentially clear
         }
     });
@@ -605,7 +607,7 @@ function render() {
     // Timer updates happen via setInterval, not here
 }
 
-function renderMonitorView(containerId, historySource) {
+function renderTimelineView(containerId, historySource) {
     const monitorContainer = document.getElementById(containerId);
     if (!monitorContainer) return;
 
@@ -619,43 +621,38 @@ function renderMonitorView(containerId, historySource) {
         historySource = state.yesterday.history;
     }
 
-    const summary = getActivitySummary(historySource);
+    // One card per session (not deduped by activity type) - a repeated
+    // activity shows up as multiple cards, oldest data first in the array.
+    const entries = [...(historySource || state.history || [])];
 
-    // Filter out items with no activity (User Request: "Do not show the activities that are not started")
-    const activeItems = summary.filter(item => item.count > 0);
+    // The still-running activity gets its own card, with no duration yet.
+    if (!historySource && state.currentActivityId && state.currentActivityStartTime) {
+        entries.push({ activityId: state.currentActivityId, startTime: state.currentActivityStartTime, duration: null });
+    }
 
-    if (activeItems.length === 0) {
+    const activityMap = {};
+    getActivities().forEach(act => { activityMap[act.id] = act; });
+
+    const cards = entries
+        .filter(entry => activityMap[entry.activityId])
+        .sort((a, b) => b.startTime - a.startTime); // Latest on top
+
+    if (cards.length === 0) {
         monitorContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No recorded activities</div>';
         return;
     }
 
-    // Sort: Chronological (Latest on top)
-    // "I meant the latest one should be there on the top" -> Descending start time
-    activeItems.sort((a, b) => {
-        if (a.firstOccurrence && !b.firstOccurrence) return -1;
-        if (!a.firstOccurrence && b.firstOccurrence) return 1;
-        if (!a.firstOccurrence && !b.firstOccurrence) return 0;
-        return b.firstOccurrence - a.firstOccurrence; // Descending
-    });
-
-    monitorContainer.innerHTML = activeItems.map(item => {
-        const tracked = item.count > 0;
-        const timeStr = tracked ? formatClockTime(item.firstOccurrence) : '';
-        const countStr = item.count > 1 ? ` (${item.count})` : '';
-        const durationStr = tracked ? formatDuration(item.totalDuration) : 'Not tracked';
-
+    monitorContainer.innerHTML = `<div class="timeline-grid">${cards.map(entry => {
+        const act = activityMap[entry.activityId];
+        const durationStr = entry.duration != null ? formatDuration(entry.duration) : '...';
         return `
-            <div class="activity-row ${tracked ? 'tracked' : 'not-tracked'}">
-                <img src="./icons/${item.icon}" class="activity-row-icon" alt="${item.label}">
-                <div class="activity-row-details">
-                    <div class="activity-row-name">${item.label}</div>
-                    <div class="activity-row-info">
-                        ${tracked ? `${timeStr}${countStr} - ${durationStr}` : durationStr}
-                    </div>
-                </div>
+            <div class="timeline-card">
+                <div class="timeline-card-time">${formatClockTime(entry.startTime)}</div>
+                <img src="./icons/${act.icon}" class="timeline-card-icon" alt="${act.label}">
+                <div class="timeline-card-duration">${durationStr}</div>
             </div>
         `;
-    }).join('');
+    }).join('')}</div>`;
 }
 
 // Helper to get total duration for each activity today
@@ -843,6 +840,8 @@ function confirmStart(activity, atTime, opts) {
 
         updateMetaDisplay(activity);
         renderActivities();
+        renderTimelineView('measureToday');
+        renderTimelineView('measureYesterday');
         saveState();
 
         // Reset Sadhana state if we are switching TO it (or just re-opening it)
@@ -909,6 +908,7 @@ function confirmStart(activity, atTime, opts) {
 
     updateMetaDisplay(activity); // Update Label
     renderActivities();
+    renderTimelineView('measureToday');
     saveState();
 
     // Show Focus Mode only for Sadhana
@@ -1508,8 +1508,8 @@ function switchMode(mode) {
         case 'measure':
             if (measurePanel) {
                 measurePanel.style.display = 'flex';
-                renderMonitorView('measureToday');
-                renderMonitorView('measureYesterday');
+                renderTimelineView('measureToday');
+                renderTimelineView('measureYesterday');
             }
             break;
 
@@ -1659,7 +1659,7 @@ function setupTabs() {
 
             // If switching to yesterday, force render to ensure data shows
             if (targetId === 'measureYesterday') {
-                renderMonitorView('measureYesterday');
+                renderTimelineView('measureYesterday');
             }
         };
     });

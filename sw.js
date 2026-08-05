@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v73';
+const CACHE_NAME = 'mindfulday-v74';
 const ASSETS = [
     './',
     './index.html',
