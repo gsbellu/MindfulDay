@@ -14,8 +14,16 @@ const VAPID_PUBLIC_KEY = 'BIwhlC6aQXGcLz26tVB6SoKQnPA_D0h2eO93jfSuwmXOCgZMcApXNd
 
 admin.initializeApp();
 
+// Global on/off switch, toggled from Settings. Missing = enabled, so
+// existing installs keep working until the user flips it off once.
+async function pushEnabled() {
+    const snap = await admin.database().ref('/pushSettings/enabled').get();
+    return snap.val() !== false;
+}
+
 // Send a payload to every registered device; prune dead subscriptions.
 async function sendToAll(payloadObj) {
+    if (!(await pushEnabled())) return ['skipped:notifications disabled'];
     const subsSnap = await admin.database().ref('/pushSubs').get();
     const subs = subsSnap.val() || {};
     const payload = JSON.stringify(payloadObj);

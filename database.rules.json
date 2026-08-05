@@ -13,6 +13,10 @@
         "pushTest": {
             ".read": "auth != null && auth.token.email === 'gs.bellu@gmail.com'",
             ".write": "auth != null && auth.token.email === 'gs.bellu@gmail.com'"
+        },
+        "pushSettings": {
+            ".read": "auth != null && auth.token.email === 'gs.bellu@gmail.com'",
+            ".write": "auth != null && auth.token.email === 'gs.bellu@gmail.com'"
         }
     }
 }

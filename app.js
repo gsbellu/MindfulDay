@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V70-18.07.2026-03:07 PM";
+const ClientVersion = "V71-05.08.2026-09:08 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -2117,16 +2117,16 @@ window.enablePush = async function () {
     try {
         if (!isSignedIn()) {
             alert('Sign in first - notifications are tied to your account.');
-            return;
+            return false;
         }
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             alert('Push is not supported in this browser. On iPhone the app must be installed to the Home Screen (iOS 16.4+).');
-            return;
+            return false;
         }
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') {
             updatePushStatus('Permission was not granted.');
-            return;
+            return false;
         }
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.subscribe({
@@ -2135,9 +2135,44 @@ window.enablePush = async function () {
         });
         await window.firebaseDB.ref('pushSubs/' + DEVICE_ID).set(JSON.parse(JSON.stringify(sub)));
         updatePushStatus('Notifications enabled on this device ✓');
+        return true;
     } catch (e) {
         updatePushStatus('Enable failed: ' + e.message);
+        return false;
     }
+};
+
+// Global toggle (Settings button): flips /pushSettings/enabled, which
+// the Cloud Functions check before sending anything. Turning on also
+// runs the normal subscribe flow for this device; turning off best-
+// effort unsubscribes this device too, though the server flag alone
+// already blocks every push regardless of subscriptions.
+window.toggleNotifications = async function () {
+    if (!isSignedIn()) {
+        alert('Sign in first - notifications are tied to your account.');
+        return;
+    }
+    try {
+        const snap = await window.firebaseDB.ref('pushSettings/enabled').get();
+        const currentlyEnabled = snap.val() !== false;
+
+        if (currentlyEnabled) {
+            await window.firebaseDB.ref('pushSettings/enabled').set(false);
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) await sub.unsubscribe();
+                await window.firebaseDB.ref('pushSubs/' + DEVICE_ID).remove();
+            } catch (e) { /* best effort */ }
+            updatePushStatus('Notifications disabled — the server will not send any pushes.');
+        } else {
+            const ok = await enablePush();
+            if (ok) await window.firebaseDB.ref('pushSettings/enabled').set(true);
+        }
+    } catch (e) {
+        updatePushStatus('Toggle failed: ' + e.message);
+    }
+    if (state.settingsMode) showSettings();
 };
 
 window.sendTestPush = async function () {
@@ -2308,6 +2343,18 @@ async function showSettings() {
     const btnText = isMismatch ? 'Update Available' : 'Up to Date';
     // We allow clicking even if up to date to force refresh
 
+    let notificationsEnabled = true;
+    try {
+        const notifSnap = await window.firebaseDB.ref('pushSettings/enabled').get();
+        notificationsEnabled = notifSnap.val() !== false;
+    } catch (e) {
+        console.warn("Notification setting fetch failed", e);
+    }
+    const permGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+    const notifStatusMsg = !notificationsEnabled
+        ? 'Disabled — the server will not send any pushes.'
+        : (permGranted ? 'Enabled — permission granted on this device.' : 'Enabled, but not yet permitted on this device.');
+
     container.innerHTML = `
         <div class="settings-section">
             <div class="settings-header">Countdown</div>
@@ -2331,11 +2378,11 @@ async function showSettings() {
 
         <div class="settings-section">
             <div class="settings-header">Notifications</div>
-            <p id="pushStatus" style="font-size: 13px; color: #8e8e93; margin: 0 0 10px;">${(typeof Notification !== 'undefined' && Notification.permission === 'granted') ? 'Permission granted on this device.' : 'Not enabled on this device yet.'}</p>
+            <p id="pushStatus" style="font-size: 13px; color: #8e8e93; margin: 0 0 10px;">${notifStatusMsg}</p>
             <div style="display: flex; gap: 10px;">
-                <button onclick="enablePush()"
-                        style="flex: 1; padding: 12px; background: #0a84ff; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                    Enable
+                <button id="notifToggleBtn" onclick="toggleNotifications()"
+                        style="flex: 1; padding: 12px; background: ${notificationsEnabled ? '#34c759' : '#3a3a3c'}; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    Notifications: ${notificationsEnabled ? 'On' : 'Off'}
                 </button>
                 <button onclick="sendTestPush()"
                         style="flex: 1; padding: 12px; background: #3a3a3c; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
