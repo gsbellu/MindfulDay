@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V72-05.08.2026-09:19 PM";
+const ClientVersion = "V73-05.08.2026-09:29 PM";
 
 // Correct SVG List
 // Default activities removed. 

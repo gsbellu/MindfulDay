@@ -728,9 +728,11 @@ body {
 
 .sadhana-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
-    /* Four 70px buttons + gaps must fit narrow phone screens */
+    /* Cap each row at 3 of the 70px buttons; extras wrap to the next row */
     justify-content: center;
+    max-width: 234px;
 }
 
 .sadhana-btn {
