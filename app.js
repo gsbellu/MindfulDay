@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V75-09.11.2026-02:47 PM";
+const ClientVersion = "V76-09.11.2026-03:00 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -793,6 +793,15 @@ function renderActivities() {
 }
 
 function handleActivityClick(activity) {
+    // Tapping the already-running tile while it's overdue acknowledges
+    // the ping and keeps the same run going - no switch dialog.
+    if (activity.id === state.currentActivityId) {
+        const status = getOverdueStatus(Date.now());
+        if (status) {
+            acknowledgeOverdue();
+            return;
+        }
+    }
     showConfirmModal(activity);
 }
 
@@ -837,6 +846,7 @@ function confirmStart(activity, atTime, opts) {
         state.isDayStarted = true;
         state.currentActivityId = activity.id;
         state.currentActivityStartTime = now;
+        state.overdueAckAt = null;
 
         updateMetaDisplay(activity);
         renderActivities();
@@ -905,6 +915,7 @@ function confirmStart(activity, atTime, opts) {
 
     state.currentActivityId = activity.id;
     state.currentActivityStartTime = now;
+    state.overdueAckAt = null;
 
     updateMetaDisplay(activity); // Update Label
     renderActivities();
@@ -1335,14 +1346,19 @@ function updateMetaDisplay(activity) {
 // duration in settings_activities.json: warn at 2x target, alert at
 // 3x target (tasks without a target: warn 3h, alert 4.5h).
 // Popups are reserved for real push notifications (future round).
-const OVERDUE_DEFAULT_MIN = 180;
+const OVERDUE_DEFAULT_MIN = 60;
 
 function getOverdueStatus(now) {
     if (!state.currentActivityId || !state.currentActivityStartTime) return null;
     const act = getActivities().find(a => a.id === state.currentActivityId);
     if (!act) return null;
 
-    const elapsed = now - state.currentActivityStartTime;
+    // Tapping the active tile while overdue acknowledges it ("I know,
+    // keep going") without ending the run - the ambient clock then
+    // re-counts from that tap instead of the true start time. The real
+    // duration logged to history is untouched; only this visual resets.
+    const since = Math.max(state.currentActivityStartTime, state.overdueAckAt || 0);
+    const elapsed = now - since;
     const targetMin = act.duration || 0;
     const warnMs = (targetMin > 0 ? targetMin * 2 : OVERDUE_DEFAULT_MIN) * 60000;
     const alertMs = warnMs * 1.5;
@@ -1350,6 +1366,12 @@ function getOverdueStatus(now) {
     if (elapsed >= alertMs) return { level: 'alert', act, elapsed };
     if (elapsed >= warnMs) return { level: 'warn', act, elapsed };
     return null;
+}
+
+function acknowledgeOverdue() {
+    state.overdueAckAt = Date.now();
+    checkOverdue(Date.now());
+    saveState();
 }
 
 function checkOverdue(now) {
