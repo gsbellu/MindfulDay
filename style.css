@@ -643,6 +643,42 @@ body {
     font-weight: 600;
 }
 
+.correction-section {
+    width: 100%;
+}
+
+.correction-warning {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #c6780f;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.correction-label {
+    text-align: center;
+    font-size: 13px;
+    color: #1c1c1e;
+    margin-bottom: 6px;
+}
+
+.correction-slider {
+    width: 100%;
+    display: block;
+}
+
+.correction-slider-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #8e8e93;
+    margin-top: 2px;
+    margin-bottom: 10px;
+}
+
 /* Quote Overlay */
 .quote-overlay {
     position: fixed;

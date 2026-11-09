@@ -157,6 +157,19 @@
 
             <div class="confirm-title" id="confirmTitle">Start a new timer?</div>
 
+            <!-- Backdate correction: shown only when the activity being left has run far longer than expected -->
+            <div class="correction-section" id="correctionSection" style="display: none;">
+                <div class="correction-warning">
+                    <i class="ph ph-warning" style="font-size: 14px;"></i>
+                    <span id="correctionWarningText">Running a long time</span>
+                </div>
+                <div class="correction-label" id="correctionLabel">started just now</div>
+                <input type="range" id="correctionSlider" class="correction-slider" min="0" max="1" value="1" step="1">
+                <div class="correction-slider-ends">
+                    <span>long ago</span><span>just now</span>
+                </div>
+            </div>
+
             <!-- Slider Component -->
             <div class="slider-container" id="sliderContainer">
                 <div class="slider-track">

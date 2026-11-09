@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V74-05.08.2026-09:56 PM";
+const ClientVersion = "V75-09.11.2026-02:47 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1848,6 +1848,68 @@ let sliderWidth = 0;
 let handleWidth = 0;
 let maxDrag = 0;
 
+// --- Backdate correction slider (confirm modal) ---
+// Lets you say the activity you're leaving actually ended earlier than
+// "now", in 15-min steps. Only shown when that activity is overdue.
+let correctionTotalSteps = 0;
+let correctionElapsedMs = 0;
+const CORRECTION_STEP_MS = 15 * 60000;
+
+function formatDurationShort(ms) {
+    const totalMin = Math.round(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+}
+
+function setupCorrectionForModal() {
+    const section = document.getElementById('correctionSection');
+    const slider = document.getElementById('correctionSlider');
+    const warningText = document.getElementById('correctionWarningText');
+    if (!section || !slider) return;
+
+    const status = getOverdueStatus(Date.now());
+    if (status && state.currentActivityStartTime) {
+        correctionElapsedMs = Date.now() - state.currentActivityStartTime;
+        correctionTotalSteps = Math.max(1, Math.floor(correctionElapsedMs / CORRECTION_STEP_MS));
+
+        slider.min = 0;
+        slider.max = correctionTotalSteps;
+        slider.value = correctionTotalSteps;
+
+        if (warningText) warningText.textContent = `${status.act.label} has been running a long time`;
+
+        section.style.display = 'block';
+        updateCorrectionLabel();
+    } else {
+        correctionElapsedMs = 0;
+        correctionTotalSteps = 0;
+        section.style.display = 'none';
+    }
+}
+
+function updateCorrectionLabel() {
+    const slider = document.getElementById('correctionSlider');
+    const label = document.getElementById('correctionLabel');
+    if (!slider || !label) return;
+
+    const rawValue = parseInt(slider.value, 10);
+    const backdateMs = (correctionTotalSteps - rawValue) * CORRECTION_STEP_MS;
+    const oldDurationMs = Math.max(0, correctionElapsedMs - backdateMs);
+
+    const oldAct = state.currentActivityId ? getActivities().find(a => a.id === state.currentActivityId) : null;
+    const oldLabel = oldAct ? oldAct.label : 'Previous';
+    const newLabel = pendingActivity ? pendingActivity.label : 'New task';
+
+    if (backdateMs <= 0) {
+        label.textContent = `${oldLabel}: ${formatDurationShort(oldDurationMs)} · ${newLabel} starts now`;
+    } else {
+        label.textContent = `${oldLabel}: ${formatDurationShort(oldDurationMs)} · ${newLabel} started ${formatDurationShort(backdateMs)} ago`;
+    }
+}
+
 function setupConfirmModal() {
     const modal = document.getElementById('confirmModal');
     const closeBtn = document.getElementById('closeConfirmBtn');
@@ -1896,6 +1958,11 @@ function setupConfirmModal() {
             // Otherwise, track click -> Confirm
             triggerConfirmAnimation();
         };
+    }
+
+    const correctionSlider = document.getElementById('correctionSlider');
+    if (correctionSlider) {
+        correctionSlider.addEventListener('input', updateCorrectionLabel);
     }
 }
 
@@ -1953,6 +2020,7 @@ function showConfirmModal(activity) {
     }
 
     updateConfirmTimers();
+    setupCorrectionForModal();
     modal.style.display = 'flex';
 }
 
@@ -2041,6 +2109,19 @@ function triggerConfirmAnimation() {
     const activityToStart = pendingActivity;
     if (!activityToStart) return;
 
+    // Backdate correction: if the correction slider is showing and was
+    // dragged off "now", honor it as the switch time.
+    let atTime = null;
+    const correctionSection = document.getElementById('correctionSection');
+    const correctionSlider = document.getElementById('correctionSlider');
+    if (correctionSection && correctionSlider && correctionSection.style.display !== 'none') {
+        const rawValue = parseInt(correctionSlider.value, 10);
+        const backdateMs = (correctionTotalSteps - rawValue) * CORRECTION_STEP_MS;
+        if (backdateMs > 0) {
+            atTime = Date.now() - backdateMs;
+        }
+    }
+
     const handle = document.getElementById('sliderHandle');
     const container = document.getElementById('sliderContainer');
     const width = container.offsetWidth;
@@ -2057,7 +2138,7 @@ function triggerConfirmAnimation() {
     setTimeout(() => {
         // Use local variable
         if (activityToStart) {
-            confirmStart(activityToStart);
+            confirmStart(activityToStart, atTime);
         }
         hideConfirmModal();
     }, 250);
