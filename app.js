@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V79-10.11.2026-10:11 AM";
+const ClientVersion = "V80-10.11.2026-10:25 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -405,6 +405,32 @@ function dismissSignIn() {
 
 function isSignedIn() {
     return !!(firebase.auth && firebase.auth().currentUser);
+}
+
+// --- Daily history archive ---
+// /state only ever holds today + yesterday (kept small for the live
+// two-device sync). Each day's raw history gets a permanent, separate
+// write to /history/<date> at Wake Up, once, when that day rotates out.
+// This path is never part of the live sync blob, so none of the
+// newest-wins reconcile logic applies here - a plain set() is enough,
+// and the Firebase SDK already queues it if offline.
+function formatDateKey(ms) {
+    const d = new Date(ms);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function archiveDay(dayStartTime, history) {
+    if (!isSignedIn() || !dayStartTime) return;
+    const dateKey = formatDateKey(dayStartTime);
+    window.firebaseDB.ref('history/' + dateKey).set({
+        dayStartTime: dayStartTime,
+        history: history
+    }).catch((error) => {
+        console.log('Day archive failed:', error);
+    });
 }
 
 function loadState() {
@@ -832,6 +858,7 @@ function confirmStart(activity, atTime, opts) {
                 dayStartTime: state.dayStartTime,
                 history: [...previousHistory] // Deep copy simple array of objects
             };
+            archiveDay(state.dayStartTime, [...previousHistory]);
         }
 
         // Reset Today

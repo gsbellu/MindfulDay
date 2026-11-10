@@ -11,7 +11,7 @@ and Windows desktop (installed PWA). Vanilla HTML/JS/CSS — **no framework, no 
 | Hosting | Firebase Hosting, project **mindfulday-gsb** → https://mindfulday-gsb.web.app |
 | Code repo | https://github.com/gsbellu/MindfulDay (PUBLIC — never commit secrets). gsbellu.github.io is LEGACY, do not maintain. |
 | Old Firebase project | `mindfulday-timer` is NOT accessible from his account — never deploy there |
-| Database | RTDB `mindfulday-gsb-default-rtdb`, region **asia-southeast1**, state at `/state` |
+| Database | RTDB `mindfulday-gsb-default-rtdb`, region **asia-southeast1**, live state at `/state`; permanent per-day archive at `/history/<YYYY-MM-DD>` (written once at Wake Up, never part of live sync — see Sync architecture) |
 | Auth | Google sign-in (compat SDK), rules restrict everything to `auth.token.email === 'gs.bellu@gmail.com'` |
 | Plan | **Blaze** (since Jul 2026; budget alert ₹100; expected bill ₹0) |
 | Functions | `functions/` dir, Node 20, 2nd-gen, region asia-southeast1 |
@@ -42,6 +42,7 @@ Verify after deploy: `curl -s https://mindfulday-gsb.web.app/version.json`.
 - `saveState()` uses a transaction that refuses to clobber a newer server copy; also strips `quotes`/`quoteBag`/`activitySettings` from what's persisted/synced.
 - The `on('value')` listener ignores remote states older than local.
 - Why: iOS/Windows freeze background PWAs; the SDK's unsent writes die with the process; localStorage is the offline vault. Historic bugs: stale desktop showed 42h-old task; offline overnight taps were erased by unguarded startup adopt.
+- **Daily archive** (`archiveDay()`): at Wake Up, the day that just ended is also written once to `/history/<YYYY-MM-DD>` (raw history array, dayStartTime) — separate from `/state`, so it carries NONE of the above reconcile complexity (write-once-per-day, not continuously synced). Plain `.set()`; the Firebase SDK queues it automatically if offline. Skipped entirely in local-only (not signed in) mode. Intended as raw material for future stats/history views — no derived stats stored, since the day's metrics (e.g. "Mindful Score") are still actively changing.
 
 ## iOS PWA quirks (measured on his iPhone — do not re-litigate)
 

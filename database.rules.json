@@ -17,6 +17,10 @@
         "pushSettings": {
             ".read": "auth != null && auth.token.email === 'gs.bellu@gmail.com'",
             ".write": "auth != null && auth.token.email === 'gs.bellu@gmail.com'"
+        },
+        "history": {
+            ".read": "auth != null && auth.token.email === 'gs.bellu@gmail.com'",
+            ".write": "auth != null && auth.token.email === 'gs.bellu@gmail.com'"
         }
     }
 }
