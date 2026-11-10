@@ -61,6 +61,7 @@ body {
 }
 
 .title-card {
+    position: relative;
     background: #000000;
     color: #ffffff;
     padding: 0;
@@ -75,6 +76,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.streak-badge {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
 }
 
 /* Area 2: Main Area (65%) */
@@ -158,6 +170,11 @@ body {
     height: 100%;
     overflow-y: auto;
     padding: 10px;
+}
+
+.streak-container {
+    width: 100%;
+    height: 100%;
 }
 
 /* Area 3: Timer Area (10%) */

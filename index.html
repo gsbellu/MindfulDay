@@ -31,7 +31,10 @@
     <div class="app-container">
         <!-- Area 1: Title Area (4%) -->
         <header class="title-area">
-            <div class="title-card">Mindful Day</div>
+            <div class="title-card">
+                Mindful Day
+                <span class="streak-badge" id="streakBadge">🔥 0</span>
+            </div>
         </header>
 
         <!-- Area 2: Main Area (65%) -->
@@ -59,6 +62,9 @@
             <div id="settingsPanel" class="settings-container" style="display: none;">
                 <div id="settingsContent"></div>
             </div>
+
+            <!-- Streak Panel (Hidden by default) -->
+            <div id="streakPanel" class="streak-container" style="display: none;"></div>
 
             <!-- Focus View (Overlay/Embedded) -->
             <div class="focus-view" id="focusView" style="display: none;">
@@ -114,6 +120,9 @@
             </button>
             <button class="nav-btn" data-mode="settings">
                 <img src="icons/settings_mode.svg" alt="Settings">
+            </button>
+            <button class="nav-btn" data-mode="streak">
+                <img src="icons/streak_mode.svg" alt="Streak">
             </button>
         </nav>
 

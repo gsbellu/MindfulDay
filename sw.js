@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindfulday-v83';
+const CACHE_NAME = 'mindfulday-v84';
 const ASSETS = [
     './',
     './index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
     './icons/sadhana_activity.svg',
     './icons/settings_mode.svg',
     './icons/sleep_activity.svg',
+    './icons/streak_mode.svg',
     './icons/sunrise_time.svg',
     './icons/sunset_time.svg',
     './icons/wake-up_activity.svg',

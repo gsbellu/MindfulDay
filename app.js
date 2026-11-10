@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V83-10.11.2026-05:34 PM";
+const ClientVersion = "V84-10.11.2026-06:08 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -49,6 +49,7 @@ let state = {
     isDayStarted: false,
     history: [],
     yesterday: null, // Stores previous day's data
+    streak: 0, // Consecutive days with >=90% of tiles touched
     activitySettings: null, // Check loadState for initialization
     quotes: [], // Stores all Sadhguru quotes
     quoteBag: [], // For "Shuffle Bag" logic to prevent repeats
@@ -453,6 +454,9 @@ function loadState() {
         // Default values as requested
         state.startToEnd = { bornOn: '31-05-1978', endAt: '60' };
     }
+    if (typeof state.streak !== 'number') {
+        state.streak = 0; // Missing on state saved before the streak feature existed
+    }
 }
 
 // --- Remote Command Queue (silent Siri Shortcuts) ---
@@ -682,6 +686,8 @@ function renderTimelineView(containerId, historySource) {
 }
 
 function renderActivities() {
+    updateStreakBadge();
+
     const grid = document.getElementById('activityGrid');
     grid.innerHTML = '';
 
@@ -814,6 +820,13 @@ function confirmStart(activity, atTime, opts) {
                 history: [...previousHistory] // Deep copy simple array of objects
             };
             archiveDay(state.dayStartTime, [...previousHistory]);
+
+            // Streak: the day that just ended counts if >=90% of tiles were touched
+            // (same "touched" definition as the Mindful Score bar), else reset to 0.
+            const touchedYesterday = new Set(previousHistory.map(e => e.activityId));
+            const totalTiles = getActivities().length;
+            const coveragePct = totalTiles > 0 ? Math.round((touchedYesterday.size / totalTiles) * 100) : 0;
+            state.streak = coveragePct >= 90 ? (state.streak || 0) + 1 : 0;
         }
 
         // Reset Today
@@ -1480,12 +1493,14 @@ function switchMode(mode) {
     const mainPanel = document.getElementById('mainPanel');
     const measurePanel = document.getElementById('measurePanel');
     const settingsPanel = document.getElementById('settingsPanel');
+    const streakPanel = document.getElementById('streakPanel');
 
     // Reset All Main Area Content
     const grid = document.getElementById('activityGrid');
     if (grid) grid.style.display = 'none';
     if (measurePanel) measurePanel.style.display = 'none';
     if (settingsPanel) settingsPanel.style.display = 'none';
+    if (streakPanel) streakPanel.style.display = 'none';
 
     // Hide Focus View if switching modes (unless we want to persist it? usually switching implies leaving activity view)
     // Actually, user might want to check settings while timer runs. 
@@ -1521,6 +1536,13 @@ function switchMode(mode) {
             if (settingsPanel) {
                 settingsPanel.style.display = 'flex'; // Settings now inside main panel
                 showSettings();
+            }
+            break;
+
+        case 'streak':
+            if (streakPanel) {
+                streakPanel.style.display = 'flex';
+                renderStreakScreen();
             }
             break;
     }
@@ -2509,6 +2531,28 @@ function getTaskCoverageProgress() {
     const touchedCount = touched.size;
     const percentage = totalCount > 0 ? Math.round((touchedCount / totalCount) * 100) : 0;
     return { percentage, touchedCount, totalCount };
+}
+
+// --- Streak (consecutive days with >=90% tile coverage) ---
+function updateStreakBadge() {
+    const streak = state.streak || 0;
+    const badge = document.getElementById('streakBadge');
+    if (badge) badge.textContent = `\u{1F525} ${streak}`;
+    renderStreakScreen();
+}
+
+function renderStreakScreen() {
+    const panel = document.getElementById('streakPanel');
+    if (!panel) return;
+    const streak = state.streak || 0;
+    panel.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px;">
+            <div style="font-size: 64px;">\u{1F525}</div>
+            <div style="font-size: 48px; font-weight: 700; color: #ffffff;">${streak}</div>
+            <div style="font-size: 14px; color: #8e8e93;">day streak · 90%+ tiles touched</div>
+            <div style="font-size: 13px; color: #8e8e93; margin-top: 16px;">More stats coming soon</div>
+        </div>
+    `;
 }
 
 function updateLifeProgress() {
