@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V77-10.11.2026-09:26 AM";
+const ClientVersion = "V78-10.11.2026-10:05 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -2513,37 +2513,20 @@ async function showSettings() {
     `;
 }
 
-// --- Mindful-day progress (2nd bar) ---
-// A completed activity counts as "mindful" if it never went overdue
-// (same warn threshold as the ambient amber/red indicator). The
-// currently running activity is judged live via getOverdueStatus, so
-// an acknowledged overdue (see acknowledgeOverdue) stops counting
-// against it until it re-escalates.
-function isEntryMindful(activityId, durationMs) {
-    const act = getActivities().find(a => a.id === activityId);
-    const targetMin = act ? (act.duration || 0) : 0;
-    const warnMs = (targetMin > 0 ? targetMin * 2 : OVERDUE_DEFAULT_MIN) * 60000;
-    return durationMs < warnMs;
-}
+// --- Task coverage progress (2nd bar) ---
+// How many of the configured activity tiles you've touched today
+// (appear in today's history, or are currently running) out of the
+// total tiles available.
+function getTaskCoverageProgress() {
+    const totalCount = getActivities().length;
 
-function getMindfulDayProgress() {
-    const entries = state.history || [];
-    let mindfulCount = 0;
-    let totalCount = entries.length;
+    const touched = new Set();
+    (state.history || []).forEach(entry => touched.add(entry.activityId));
+    if (state.currentActivityId) touched.add(state.currentActivityId);
 
-    entries.forEach(entry => {
-        if (isEntryMindful(entry.activityId, entry.duration)) mindfulCount++;
-    });
-
-    if (state.currentActivityId && state.currentActivityStartTime) {
-        totalCount += 1;
-        if (!getOverdueStatus(Date.now())) mindfulCount += 1;
-    }
-
-    if (totalCount === 0) return { percentage: 100, mindfulCount: 0, totalCount: 0 };
-
-    const percentage = Math.round((mindfulCount / totalCount) * 100);
-    return { percentage, mindfulCount, totalCount };
+    const touchedCount = touched.size;
+    const percentage = totalCount > 0 ? Math.round((touchedCount / totalCount) * 100) : 0;
+    return { percentage, touchedCount, totalCount };
 }
 
 function updateLifeProgress() {
@@ -2551,11 +2534,19 @@ function updateLifeProgress() {
     const progressText = document.getElementById('lifeProgressText');
     if (!progressBar || !progressText) return;
 
-    const { percentage, mindfulCount, totalCount } = getMindfulDayProgress();
+    const { percentage, touchedCount, totalCount } = getTaskCoverageProgress();
 
     progressBar.style.width = `${percentage}%`;
-    progressText.textContent = totalCount > 0
-        ? `${mindfulCount}/${totalCount} mindful today (${percentage}%)`
-        : 'No tasks yet today';
-    progressText.style.color = (totalCount > 0 && percentage < 90) ? '#ff9500' : '';
+
+    // Gray while filling up, green once 90%+ of tiles are touched,
+    // a darker green once every tile has been touched.
+    let barColor = '#5a5a5e';
+    if (percentage >= 100) {
+        barColor = '#2e5e29';
+    } else if (percentage >= 90) {
+        barColor = '#468e40';
+    }
+    progressBar.style.background = barColor;
+
+    progressText.textContent = `${touchedCount}/${totalCount} tasks touched today (${percentage}%)`;
 }

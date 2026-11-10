@@ -78,7 +78,7 @@ Verify after deploy: `curl -s https://mindfulday-gsb.web.app/version.json`.
 - Confirm security-relevant changes explicitly (he declined unauth DB writes once asked plainly).
 - He wants hand-holding for Google/Firebase console steps (screenshots go back and forth).
 - Phone is usually on SILENT; all other reminders off; MindfulDay's reminder is his one "special" notification.
-- The 2nd progress bar (`lifeProgressBar`/`lifeProgressText`) no longer shows the retirement countdown — it shows today's mindful-task progress (`getMindfulDayProgress()` in app.js): share of today's activities that stayed under the overdue-warn threshold, live-updated each tick. The countdown Settings section was removed.
+- The 2nd progress bar (`lifeProgressBar`/`lifeProgressText`) no longer shows the retirement countdown — it shows today's **task coverage** (`getTaskCoverageProgress()` in app.js): how many of the 20 configured activity tiles have been touched today (in history or currently running) out of the total. Gray below 90%, green at 90%+, dark green at 100%. The countdown Settings section was removed. (An earlier "mindful switch %" version was tried and rejected — not measurable/meaningful per the user.)
 
 ## Dev environment landmines
 
