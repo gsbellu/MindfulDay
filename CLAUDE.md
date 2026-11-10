@@ -78,7 +78,7 @@ Verify after deploy: `curl -s https://mindfulday-gsb.web.app/version.json`.
 - Confirm security-relevant changes explicitly (he declined unauth DB writes once asked plainly).
 - He wants hand-holding for Google/Firebase console steps (screenshots go back and forth).
 - Phone is usually on SILENT; all other reminders off; MindfulDay's reminder is his one "special" notification.
-- Countdown (life-progress bar) settings are per-device localStorage — not synced (known, accepted).
+- The 2nd progress bar (`lifeProgressBar`/`lifeProgressText`) no longer shows the retirement countdown — it shows today's mindful-task progress (`getMindfulDayProgress()` in app.js): share of today's activities that stayed under the overdue-warn threshold, live-updated each tick. The countdown Settings section was removed.
 
 ## Dev environment landmines
 

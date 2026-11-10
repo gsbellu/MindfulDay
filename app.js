@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V76-09.11.2026-03:00 PM";
+const ClientVersion = "V77-10.11.2026-09:26 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -2430,11 +2430,6 @@ async function showSettings() {
     const container = document.getElementById('settingsContent');
     if (!container) return;
 
-    // Load saved values
-    const msg = localStorage.getItem('countdownMsg') || "? Days to Retirement";
-    const start = localStorage.getItem('countdownStart') || "";
-    const end = localStorage.getItem('countdownEnd') || "";
-
     // Version Logic
     let serverVer = "Unknown";
     try {
@@ -2460,26 +2455,6 @@ async function showSettings() {
         : (permGranted ? 'Enabled — permission granted on this device.' : 'Enabled, but not yet permitted on this device.');
 
     container.innerHTML = `
-        <div class="settings-section">
-            <div class="settings-header">Countdown</div>
-            
-            <div class="settings-group">
-                <label class="settings-label">Text:</label>
-                <input type="text" id="cdMsg" class="settings-input" value="${msg}">
-            </div>
-
-            <div class="settings-date-row">
-                <div class="settings-date-group">
-                    <label class="settings-label">Start:</label>
-                    <input type="date" id="cdStart" class="settings-input" value="${start}">
-                </div>
-                <div class="settings-date-group">
-                    <label class="settings-label">End:</label>
-                    <input type="date" id="cdEnd" class="settings-input" value="${end}">
-                </div>
-            </div>
-        </div>
-
         <div class="settings-section">
             <div class="settings-header">Notifications</div>
             <p id="pushStatus" style="font-size: 13px; color: #8e8e93; margin: 0 0 10px;">${notifStatusMsg}</p>
@@ -2536,79 +2511,51 @@ async function showSettings() {
             </div>
         </div>
     `;
-
-    setupCountdownEvents();
 }
 
-function setupCountdownEvents() {
-    const msgInput = document.getElementById('cdMsg');
-    const startInput = document.getElementById('cdStart');
-    const endInput = document.getElementById('cdEnd');
+// --- Mindful-day progress (2nd bar) ---
+// A completed activity counts as "mindful" if it never went overdue
+// (same warn threshold as the ambient amber/red indicator). The
+// currently running activity is judged live via getOverdueStatus, so
+// an acknowledged overdue (see acknowledgeOverdue) stops counting
+// against it until it re-escalates.
+function isEntryMindful(activityId, durationMs) {
+    const act = getActivities().find(a => a.id === activityId);
+    const targetMin = act ? (act.duration || 0) : 0;
+    const warnMs = (targetMin > 0 ? targetMin * 2 : OVERDUE_DEFAULT_MIN) * 60000;
+    return durationMs < warnMs;
+}
 
-    const saveAndRender = () => {
-        localStorage.setItem('countdownMsg', msgInput.value);
-        localStorage.setItem('countdownStart', startInput.value);
-        localStorage.setItem('countdownEnd', endInput.value);
-        updateLifeProgress();
-    };
+function getMindfulDayProgress() {
+    const entries = state.history || [];
+    let mindfulCount = 0;
+    let totalCount = entries.length;
 
-    if (msgInput) msgInput.oninput = saveAndRender;
-    if (startInput) startInput.onchange = saveAndRender;
-    if (endInput) endInput.onchange = saveAndRender;
+    entries.forEach(entry => {
+        if (isEntryMindful(entry.activityId, entry.duration)) mindfulCount++;
+    });
+
+    if (state.currentActivityId && state.currentActivityStartTime) {
+        totalCount += 1;
+        if (!getOverdueStatus(Date.now())) mindfulCount += 1;
+    }
+
+    if (totalCount === 0) return { percentage: 100, mindfulCount: 0, totalCount: 0 };
+
+    const percentage = Math.round((mindfulCount / totalCount) * 100);
+    return { percentage, mindfulCount, totalCount };
 }
 
 function updateLifeProgress() {
-    const msg = localStorage.getItem('countdownMsg') || "? Days to Retirement";
-    const startStr = localStorage.getItem('countdownStart');
-    const endStr = localStorage.getItem('countdownEnd');
-
     const progressBar = document.getElementById('lifeProgressBar');
     const progressText = document.getElementById('lifeProgressText');
-
     if (!progressBar || !progressText) return;
 
-    // Default state
-    let percentage = 0;
-    let daysLeft = "?";
+    const { percentage, mindfulCount, totalCount } = getMindfulDayProgress();
 
-    if (startStr && endStr) {
-        const start = new Date(startStr).getTime();
-        const end = new Date(endStr).getTime();
-        const now = Date.now();
-
-        if (end > start) {
-            const total = end - start;
-            const elapsed = now - start;
-            percentage = (elapsed / total) * 100;
-
-            // Clamp
-            if (percentage < 0) percentage = 0;
-            if (percentage > 100) percentage = 100;
-
-            // Days Calculation
-            const diffTime = end - now;
-            // Round up to nearest day
-            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (daysLeft < 0) daysLeft = 0;
-        } else {
-            console.warn("Countdown: End date must be after Start date");
-            daysLeft = "Error";
-        }
-    }
-
-    // Update Bar - Width (Horizontal now)
     progressBar.style.width = `${percentage}%`;
-
-    // Update Text (Replace ? with number)
-    if (daysLeft === "Error") {
-        progressText.textContent = "Check Dates";
-        progressText.style.color = "red";
-    } else if (msg.includes('?')) {
-        progressText.textContent = msg.replace('?', daysLeft);
-        progressText.style.color = ""; // reset
-    } else {
-        progressText.textContent = msg;
-        progressText.style.color = ""; // reset
-    }
+    progressText.textContent = totalCount > 0
+        ? `${mindfulCount}/${totalCount} mindful today (${percentage}%)`
+        : 'No tasks yet today';
+    progressText.style.color = (totalCount > 0 && percentage < 90) ? '#ff9500' : '';
 }
