@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V78-10.11.2026-10:05 AM";
+const ClientVersion = "V79-10.11.2026-10:11 AM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -2548,5 +2548,5 @@ function updateLifeProgress() {
     }
     progressBar.style.background = barColor;
 
-    progressText.textContent = `${touchedCount}/${totalCount} tasks touched today (${percentage}%)`;
+    progressText.textContent = `Mindful Score: ${percentage}%`;
 }
