@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V84-10.11.2026-06:08 PM";
+const ClientVersion = "V85-10.11.2026-10:13 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -244,6 +244,7 @@ function fetchActivitySettings() {
             renderActivities();
             renderTimelineView('measureToday');
             renderTimelineView('measureYesterday');
+            renderStatsView();
 
             // Restore Label if we have a valid current activity (Fix for missing label on reload)
             if (state.currentActivityId) {
@@ -557,6 +558,7 @@ function refreshStateFromServer(tag) {
         renderActivities();
         renderTimelineView('measureToday');
         renderTimelineView('measureYesterday');
+        renderStatsView();
     }).catch((e) => {
         console.log(`[sync:${tag}] refresh failed:`, e && e.message);
     });
@@ -597,6 +599,7 @@ function attachFirebaseSync() {
 
             renderTimelineView('measureToday');
             renderTimelineView('measureYesterday');
+            renderStatsView();
             updateMetaDisplay({ label: '' }); // potentially clear
         }
     });
@@ -683,6 +686,54 @@ function renderTimelineView(containerId, historySource) {
             </div>
         `;
     }).join('')}</div>`;
+}
+
+// Stats tab (Today): switch count + longest-running task, the two metrics
+// the user asked for first - more sub-sections (week/month/year) to follow.
+function renderStatsView() {
+    const container = document.getElementById('measureStats');
+    if (!container) return;
+
+    const entries = [...(state.history || [])];
+    if (state.currentActivityId && state.currentActivityStartTime) {
+        entries.push({ activityId: state.currentActivityId, startTime: state.currentActivityStartTime, duration: null });
+    }
+
+    if (entries.length === 0) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No data for today</div>';
+        return;
+    }
+
+    const switchCount = entries.length;
+
+    const activityMap = {};
+    getActivities().forEach(act => { activityMap[act.id] = act; });
+
+    let longest = null;
+    let longestMs = -1;
+    entries.forEach(entry => {
+        const ms = entry.duration != null ? entry.duration : (Date.now() - entry.startTime);
+        if (ms > longestMs) {
+            longestMs = ms;
+            longest = entry;
+        }
+    });
+    const longestAct = longest ? activityMap[longest.activityId] : null;
+    const longestLabel = longestAct ? longestAct.label : '-';
+    const longestStr = longestMs >= 0 ? formatDuration(longestMs) : '-';
+
+    container.innerHTML = `
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #8e8e93; font-size: 14px;">Switches today</span>
+                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${switchCount}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #8e8e93; font-size: 14px;">Longest running</span>
+                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${longestLabel} &middot; ${longestStr}</span>
+            </div>
+        </div>
+    `;
 }
 
 function renderActivities() {
@@ -847,6 +898,7 @@ function confirmStart(activity, atTime, opts) {
         renderActivities();
         renderTimelineView('measureToday');
         renderTimelineView('measureYesterday');
+        renderStatsView();
         saveState();
 
         // Reset Sadhana state if we are switching TO it (or just re-opening it)
@@ -915,6 +967,7 @@ function confirmStart(activity, atTime, opts) {
     updateMetaDisplay(activity); // Update Label
     renderActivities();
     renderTimelineView('measureToday');
+    renderStatsView();
     saveState();
 
     // Show Focus Mode only for Sadhana
@@ -1529,6 +1582,7 @@ function switchMode(mode) {
                 measurePanel.style.display = 'flex';
                 renderTimelineView('measureToday');
                 renderTimelineView('measureYesterday');
+                renderStatsView();
             }
             break;
 
@@ -1683,9 +1737,11 @@ function setupTabs() {
                 }
             });
 
-            // If switching to yesterday, force render to ensure data shows
+            // If switching to yesterday/stats, force render to ensure data shows
             if (targetId === 'measureYesterday') {
                 renderTimelineView('measureYesterday');
+            } else if (targetId === 'measureStats') {
+                renderStatsView();
             }
         };
     });
