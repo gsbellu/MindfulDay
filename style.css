@@ -138,22 +138,9 @@ body {
     opacity: 1;
 }
 
-/* Status Dot */
-.status-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.status-dot.green {
-    background: #10b981;
-}
-
-.status-dot.orange {
-    background: #f59e0b;
+/* Target-completion indicator: green border once today's target is met */
+.activity-btn.tile-complete {
+    border: 2px solid #10b981;
 }
 
 

@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V81-10.11.2026-03:21 PM";
+const ClientVersion = "V82-10.11.2026-05:23 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -774,44 +774,18 @@ function renderActivities() {
     uniqueActivities.forEach(act => {
         const btn = document.createElement('div');
         btn.className = `activity-btn ${state.currentActivityId === act.id ? 'active' : ''}`;
-        btn.style.position = 'relative'; // Ensure dot positioning works
 
-        // STATUS DOT LOGIC
+        // Target-completion indicator: tile border turns green once today's duration target is met
         const totalMs = currentDurations[act.id] || 0;
         const targetMin = act.duration || 0;
         const targetMs = targetMin * 60000;
-
-        let dotClass = '';
-
-        if (totalMs > 0) {
-            // Activity has started/run at least once
-            if (targetMin === 0) {
-                // Unspecified duration: Green if >= 1 minute (60000ms)
-                if (totalMs >= 60000) {
-                    dotClass = 'green';
-                } else {
-                    dotClass = 'orange'; // Started but less than a minute
-                }
-            } else {
-                // Specified duration
-                if (totalMs >= targetMs) { // Changed > to >= just in case
-                    dotClass = 'green';
-                } else {
-                    dotClass = 'orange';
-                }
-            }
-        }
+        const complete = targetMin === 0 ? totalMs >= 60000 : totalMs >= targetMs;
+        if (complete) btn.classList.add('tile-complete');
 
         const img = document.createElement('img');
         img.src = `./icons/${act.icon}`;
         img.alt = act.label;
         btn.appendChild(img);
-
-        if (dotClass) {
-            const dot = document.createElement('div');
-            dot.className = `status-dot ${dotClass}`;
-            btn.appendChild(dot);
-        }
 
         btn.onclick = () => handleActivityClick(act);
         grid.appendChild(btn);
