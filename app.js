@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V82-10.11.2026-05:23 PM";
+const ClientVersion = "V83-10.11.2026-05:34 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -681,23 +681,6 @@ function renderTimelineView(containerId, historySource) {
     }).join('')}</div>`;
 }
 
-// Helper to get total duration for each activity today
-function getTodayActivityDurations() {
-    const durations = {};
-    const summary = getActivitySummary(); // Uses state.history by default (Today)
-
-    // Initialize all from settings to 0
-    getActivities().forEach(act => durations[act.id] = 0);
-
-    summary.forEach(item => {
-        if (durations[item.id] !== undefined) {
-            durations[item.id] = item.totalDuration; // ms
-        }
-    });
-
-    return durations;
-}
-
 function renderActivities() {
     const grid = document.getElementById('activityGrid');
     grid.innerHTML = '';
@@ -768,19 +751,17 @@ function renderActivities() {
     }
 
 
-    // Get durations for status dots
-    const currentDurations = getTodayActivityDurations();
+    // Touched-today indicator: tile border turns green as soon as an activity is started,
+    // regardless of its duration target - same "touched" set the Mindful Score bar uses.
+    const touchedToday = new Set();
+    (state.history || []).forEach(entry => touchedToday.add(entry.activityId));
+    if (state.currentActivityId) touchedToday.add(state.currentActivityId);
 
     uniqueActivities.forEach(act => {
         const btn = document.createElement('div');
         btn.className = `activity-btn ${state.currentActivityId === act.id ? 'active' : ''}`;
 
-        // Target-completion indicator: tile border turns green once today's duration target is met
-        const totalMs = currentDurations[act.id] || 0;
-        const targetMin = act.duration || 0;
-        const targetMs = targetMin * 60000;
-        const complete = targetMin === 0 ? totalMs >= 60000 : totalMs >= targetMs;
-        if (complete) btn.classList.add('tile-complete');
+        if (touchedToday.has(act.id)) btn.classList.add('tile-complete');
 
         const img = document.createElement('img');
         img.src = `./icons/${act.icon}`;
