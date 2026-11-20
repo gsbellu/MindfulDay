@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V85-10.11.2026-10:13 PM";
+const ClientVersion = "V86-20.11.2026-08:56 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1932,7 +1932,8 @@ let maxDrag = 0;
 
 // --- Backdate correction slider (confirm modal) ---
 // Lets you say the activity you're leaving actually ended earlier than
-// "now", in 15-min steps. Only shown when that activity is overdue.
+// "now", in 15-min steps. Shown for every switch (any running activity);
+// the amber "running a long time" line on top is overdue-only context.
 let correctionTotalSteps = 0;
 let correctionElapsedMs = 0;
 const CORRECTION_STEP_MS = 15 * 60000;
@@ -1950,26 +1951,31 @@ function setupCorrectionForModal() {
     const section = document.getElementById('correctionSection');
     const slider = document.getElementById('correctionSlider');
     const warningText = document.getElementById('correctionWarningText');
+    const warningRow = warningText ? warningText.closest('.correction-warning') : null;
     if (!section || !slider) return;
 
-    const status = getOverdueStatus(Date.now());
-    if (status && state.currentActivityStartTime) {
-        correctionElapsedMs = Date.now() - state.currentActivityStartTime;
-        correctionTotalSteps = Math.max(1, Math.floor(correctionElapsedMs / CORRECTION_STEP_MS));
-
-        slider.min = 0;
-        slider.max = correctionTotalSteps;
-        slider.value = correctionTotalSteps;
-
-        if (warningText) warningText.textContent = `${status.act.label} has been running a long time`;
-
-        section.style.display = 'block';
-        updateCorrectionLabel();
-    } else {
+    if (!state.currentActivityId || !state.currentActivityStartTime) {
         correctionElapsedMs = 0;
         correctionTotalSteps = 0;
         section.style.display = 'none';
+        return;
     }
+
+    correctionElapsedMs = Date.now() - state.currentActivityStartTime;
+    correctionTotalSteps = Math.max(1, Math.floor(correctionElapsedMs / CORRECTION_STEP_MS));
+
+    slider.min = 0;
+    slider.max = correctionTotalSteps;
+    slider.value = correctionTotalSteps;
+
+    // The amber "running a long time" line is overdue-only context; the
+    // slider itself is available for every switch, overdue or not.
+    const status = getOverdueStatus(Date.now());
+    if (warningRow) warningRow.style.display = status ? 'flex' : 'none';
+    if (status && warningText) warningText.textContent = `${status.act.label} has been running a long time`;
+
+    section.style.display = 'block';
+    updateCorrectionLabel();
 }
 
 function updateCorrectionLabel() {
