@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V86-20.11.2026-08:56 PM";
+const ClientVersion = "V87-20.11.2026-09:20 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     registerServiceWorker();
 
     // Viewport diagnostics for the iOS bottom-gap issue.
-    // Shows up in Settings > App Control > Debug Log.
+    // Logged to window.pwaDebugLog / console (no longer shown in Settings).
     setTimeout(() => {
         try {
             const nav = document.querySelector('.navigation-area');
@@ -2554,14 +2554,6 @@ async function showSettings() {
                 Install App
             </button>
             
-            <!-- Debug Logs -->
-            <div style="background: #1c1c1e; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #8e8e93; max-height: 100px; overflow-y: auto;">
-                <strong>Debug Log:</strong><br>
-                ${(window.pwaDebugLog || []).length > 0 ? (window.pwaDebugLog || []).join('<br>') : 'No logs yet...'}
-            </div>
-            
-            <br>
-
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <button onclick="performUpdate()" 
                         style="flex: 1; padding: 12px; background: ${btnColor}; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">

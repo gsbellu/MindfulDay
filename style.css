@@ -672,6 +672,41 @@ body {
 .correction-slider {
     width: 100%;
     display: block;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #d1d1d6;
+    outline: none;
+    margin: 16px 0;
+}
+
+.correction-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+.correction-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #d1d1d6;
+}
+
+.correction-slider::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
 }
 
 .correction-slider-ends {
