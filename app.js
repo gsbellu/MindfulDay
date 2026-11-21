@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V87-20.11.2026-09:20 PM";
+const ClientVersion = "V88-20.11.2026-09:48 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1184,7 +1184,8 @@ const SADHANA_MODES = [
     { id: 'shambhavi', label: 'Shambhavi', icon: 'shambhavi.png', audio: 'Shambhavi.mp3' },
     { id: '61points', label: '61 Points', icon: '61points.png', audio: '61PointsRelaxation.mp3' },
     { id: 'gurupooja', label: 'Guru Pooja', icon: 'gurupooja.png', audio: 'GuruPooja.mp3' },
-    { id: 'shoonya', label: 'Shoonya', icon: 'shoonya.png', audio: null }
+    { id: 'shoonya', label: 'Shoonya', icon: 'shoonya.png', audio: null },
+    { id: 'aum', label: 'Aum', icon: 'aum.png', audio: 'aum.mp3' }
 ];
 
 function getSadhanaMode(id) {
