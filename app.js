@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V92-22.11.2026-04:20 PM";
+const ClientVersion = "V93-22.11.2026-04:25 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -736,21 +736,36 @@ function renderStatsView() {
     const longestStr = longestMs >= 0 ? formatDuration(longestMs) : '-';
     const avgStr = formatDuration(Math.round(totalMs / switchCount));
 
-    const rows = [
-        ['Switches today', switchCount],
-        ['Longest running', `${longestLabel} &middot; ${longestStr}`],
-        ['Mindful acknowledgments', state.mindfulAcks || 0],
-        ['Overdue episodes', state.overdueEpisodes || 0],
-        ['Average session', avgStr]
+    // Label colors (user-specified): green = "did the mindful thing",
+    // red = "lost track of time", gray = neutral/unchanged.
+    const GREEN = '#10b981'; // same green as the tile-complete border
+    const RED = '#cf3a2b';   // same red as the overdue-alert pulse
+    const GRAY = '#8e8e93';  // default label gray used elsewhere
+
+    const todayRows = [
+        { label: `<span style="color:${GREEN}">Mindful switches</span>`, value: switchCount },
+        { label: `<span style="color:${RED}">Longest running</span>`, value: `${longestLabel} &middot; ${longestStr}` },
+        { label: `<span style="color:${GREEN}">Mindful extension</span> <span style="color:${GRAY}">(long running)</span>`, value: state.mindfulAcks || 0 },
+        { label: `<span style="color:${RED}">Overdue episodes</span>`, value: state.overdueEpisodes || 0 },
+        { label: `<span style="color:${GRAY}">Average session</span>`, value: avgStr }
     ];
 
-    container.innerHTML = `
-        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
-            ${rows.map(([label, value]) => `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #8e8e93; font-size: 14px;">${label}</span>
-                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${value}</span>
-            </div>`).join('')}
+    container.innerHTML = renderStatsGroup('Today', todayRows);
+}
+
+// One labeled group of Stats rows (Today, This Week, ... - more groups
+// land in a later pass). `rows` is [{label (HTML, pre-colored), value}].
+function renderStatsGroup(title, rows) {
+    return `
+        <div style="padding: 20px;">
+            <div style="color: #8e8e93; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">${title}</div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${rows.map(({ label, value }) => `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14px;">${label}</span>
+                    <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${value}</span>
+                </div>`).join('')}
+            </div>
         </div>
     `;
 }
