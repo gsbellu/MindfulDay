@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V90-22.11.2026-02:28 PM";
+const ClientVersion = "V91-22.11.2026-03:20 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -1939,11 +1939,23 @@ let maxDrag = 0;
 
 // --- Backdate correction slider (confirm modal) ---
 // Lets you say the activity you're leaving actually ended earlier than
-// "now", in 15-min steps. Shown for every switch (any running activity);
-// the amber "running a long time" line on top is overdue-only context.
+// "now". Shown for every switch (any running activity); the amber
+// "running a long time" line on top is overdue-only context.
 let correctionTotalSteps = 0;
 let correctionElapsedMs = 0;
-const CORRECTION_STEP_MS = 15 * 60000;
+let correctionStepMs = 15 * 60000;
+
+// Step size scales with how long the task's been running, so a short
+// task (e.g. 23 min) still gets several in-between positions instead of
+// just "now" / "15 min ago" (a fixed 15-min step left only 1 step there).
+function getCorrectionStepMs(elapsedMs) {
+    const MIN = 60000;
+    if (elapsedMs <= 30 * MIN) return 5 * MIN;
+    if (elapsedMs <= 60 * MIN) return 10 * MIN;
+    if (elapsedMs <= 3 * 60 * MIN) return 15 * MIN;
+    if (elapsedMs <= 6 * 60 * MIN) return 30 * MIN;
+    return 60 * MIN;
+}
 
 function formatDurationShort(ms) {
     const totalMin = Math.round(ms / 60000);
@@ -1969,7 +1981,8 @@ function setupCorrectionForModal() {
     }
 
     correctionElapsedMs = Date.now() - state.currentActivityStartTime;
-    correctionTotalSteps = Math.max(1, Math.floor(correctionElapsedMs / CORRECTION_STEP_MS));
+    correctionStepMs = getCorrectionStepMs(correctionElapsedMs);
+    correctionTotalSteps = Math.max(1, Math.floor(correctionElapsedMs / correctionStepMs));
 
     slider.min = 0;
     slider.max = correctionTotalSteps;
@@ -1991,7 +2004,7 @@ function updateCorrectionLabel() {
     if (!slider || !label) return;
 
     const rawValue = parseInt(slider.value, 10);
-    const backdateMs = (correctionTotalSteps - rawValue) * CORRECTION_STEP_MS;
+    const backdateMs = (correctionTotalSteps - rawValue) * correctionStepMs;
     const oldDurationMs = Math.max(0, correctionElapsedMs - backdateMs);
 
     const oldAct = state.currentActivityId ? getActivities().find(a => a.id === state.currentActivityId) : null;
@@ -2211,7 +2224,7 @@ function triggerConfirmAnimation() {
     const correctionSlider = document.getElementById('correctionSlider');
     if (correctionSection && correctionSlider && correctionSection.style.display !== 'none') {
         const rawValue = parseInt(correctionSlider.value, 10);
-        const backdateMs = (correctionTotalSteps - rawValue) * CORRECTION_STEP_MS;
+        const backdateMs = (correctionTotalSteps - rawValue) * correctionStepMs;
         if (backdateMs > 0) {
             atTime = Date.now() - backdateMs;
         }
