@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V89-22.11.2026-01:48 PM";
+const ClientVersion = "V90-22.11.2026-02:28 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -50,6 +50,7 @@ let state = {
     history: [],
     yesterday: null, // Stores previous day's data
     streak: 0, // Consecutive days with >=90% of tiles touched
+    mindfulAcks: 0, // Today's count of tapping an overdue tile to acknowledge it (Mindful Score credit)
     activitySettings: null, // Check loadState for initialization
     quotes: [], // Stores all Sadhguru quotes
     quoteBag: [], // For "Shuffle Bag" logic to prevent repeats
@@ -457,6 +458,9 @@ function loadState() {
     }
     if (typeof state.streak !== 'number') {
         state.streak = 0; // Missing on state saved before the streak feature existed
+    }
+    if (typeof state.mindfulAcks !== 'number') {
+        state.mindfulAcks = 0; // Missing on state saved before the dynamic Mindful Score existed
     }
 }
 
@@ -884,6 +888,7 @@ function confirmStart(activity, atTime, opts) {
         state.currentActivityId = null;
         state.currentActivityStartTime = null;
         state.history = [];
+        state.mindfulAcks = 0;
         state.isDayStarted = false;
         state.dayStartTime = null;
 
@@ -1419,6 +1424,7 @@ function getOverdueStatus(now) {
 
 function acknowledgeOverdue() {
     state.overdueAckAt = Date.now();
+    state.mindfulAcks = (state.mindfulAcks || 0) + 1; // Mindful Score credit - see getTaskCoverageProgress()
     checkOverdue(Date.now());
     saveState();
 }
@@ -2572,18 +2578,28 @@ async function showSettings() {
     `;
 }
 
-// --- Task coverage progress (2nd bar) ---
-// How many of the configured activity tiles you've touched today
-// (appear in today's history, or are currently running) out of the
-// total tiles available.
+// --- Mindful Score (2nd bar) ---
+// Starts as touched-tiles / 20, but both sides grow with mindfulness
+// shown today: every repeat touch of an already-touched activity (a
+// log, or an overdue tile tapped to acknowledge it rather than ignored)
+// adds +1 to the numerator AND the denominator - so revisiting/resetting
+// a task always raises the score, it just doesn't inflate the ceiling
+// as fast as a brand-new tile does. Example: shower logged twice today,
+// nothing else touched -> 2/21, not 1/20 and not 2/20.
 function getTaskCoverageProgress() {
-    const totalCount = getActivities().length;
+    const baseCount = getActivities().length;
 
     const touched = new Set();
     (state.history || []).forEach(entry => touched.add(entry.activityId));
     if (state.currentActivityId) touched.add(state.currentActivityId);
+    const distinctTouched = touched.size;
 
-    const touchedCount = touched.size;
+    const totalTouches = (state.history || []).length + (state.currentActivityId ? 1 : 0);
+    const acks = state.mindfulAcks || 0;
+    const repeats = (totalTouches - distinctTouched) + acks;
+
+    const touchedCount = totalTouches + acks; // numerator
+    const totalCount = baseCount + repeats;   // denominator
     const percentage = totalCount > 0 ? Math.round((touchedCount / totalCount) * 100) : 0;
     return { percentage, touchedCount, totalCount };
 }
