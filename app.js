@@ -4,7 +4,7 @@
 
 const STATE_KEY = 'mindfulDayState';
 // This value is updated automatically by update_version.js
-const ClientVersion = "V91-22.11.2026-03:20 PM";
+const ClientVersion = "V92-22.11.2026-04:20 PM";
 
 // Correct SVG List
 // Default activities removed. 
@@ -51,6 +51,8 @@ let state = {
     yesterday: null, // Stores previous day's data
     streak: 0, // Consecutive days with >=90% of tiles touched
     mindfulAcks: 0, // Today's count of tapping an overdue tile to acknowledge it (Mindful Score credit)
+    overdueEpisodes: 0, // Today's count of distinct times a task crossed into warn/alert
+    overdueEpisodeActive: false, // Edge-detect flag for the counter above - not a user-facing stat
     activitySettings: null, // Check loadState for initialization
     quotes: [], // Stores all Sadhguru quotes
     quoteBag: [], // For "Shuffle Bag" logic to prevent repeats
@@ -462,6 +464,9 @@ function loadState() {
     if (typeof state.mindfulAcks !== 'number') {
         state.mindfulAcks = 0; // Missing on state saved before the dynamic Mindful Score existed
     }
+    if (typeof state.overdueEpisodes !== 'number') {
+        state.overdueEpisodes = 0; // Missing on state saved before the Stats tab tracked this
+    }
 }
 
 // --- Remote Command Queue (silent Siri Shortcuts) ---
@@ -692,8 +697,10 @@ function renderTimelineView(containerId, historySource) {
     }).join('')}</div>`;
 }
 
-// Stats tab (Today): switch count + longest-running task, the two metrics
-// the user asked for first - more sub-sections (week/month/year) to follow.
+// Stats tab (Today): five metrics chosen for mindfulness, not productivity -
+// how often you paused to notice a transition, your biggest lost-track-of-
+// time moment, how often you caught yourself and how often you drifted at
+// all, and your overall pace. More sub-sections (week/month/year) to follow.
 function renderStatsView() {
     const container = document.getElementById('measureStats');
     if (!container) return;
@@ -715,8 +722,10 @@ function renderStatsView() {
 
     let longest = null;
     let longestMs = -1;
+    let totalMs = 0;
     entries.forEach(entry => {
         const ms = entry.duration != null ? entry.duration : (Date.now() - entry.startTime);
+        totalMs += ms;
         if (ms > longestMs) {
             longestMs = ms;
             longest = entry;
@@ -725,17 +734,23 @@ function renderStatsView() {
     const longestAct = longest ? activityMap[longest.activityId] : null;
     const longestLabel = longestAct ? longestAct.label : '-';
     const longestStr = longestMs >= 0 ? formatDuration(longestMs) : '-';
+    const avgStr = formatDuration(Math.round(totalMs / switchCount));
+
+    const rows = [
+        ['Switches today', switchCount],
+        ['Longest running', `${longestLabel} &middot; ${longestStr}`],
+        ['Mindful acknowledgments', state.mindfulAcks || 0],
+        ['Overdue episodes', state.overdueEpisodes || 0],
+        ['Average session', avgStr]
+    ];
 
     container.innerHTML = `
         <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            ${rows.map(([label, value]) => `
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #8e8e93; font-size: 14px;">Switches today</span>
-                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${switchCount}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #8e8e93; font-size: 14px;">Longest running</span>
-                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${longestLabel} &middot; ${longestStr}</span>
-            </div>
+                <span style="color: #8e8e93; font-size: 14px;">${label}</span>
+                <span style="color: #ffffff; font-size: 18px; font-weight: 700;">${value}</span>
+            </div>`).join('')}
         </div>
     `;
 }
@@ -889,6 +904,8 @@ function confirmStart(activity, atTime, opts) {
         state.currentActivityStartTime = null;
         state.history = [];
         state.mindfulAcks = 0;
+        state.overdueEpisodes = 0;
+        state.overdueEpisodeActive = false;
         state.isDayStarted = false;
         state.dayStartTime = null;
 
@@ -1438,6 +1455,19 @@ function checkOverdue(now) {
     const status = getOverdueStatus(now);
     const warn = !!status && status.level === 'warn';
     const alert = !!status && status.level === 'alert';
+
+    // Stats: count a new overdue episode each time a task newly crosses
+    // into warn/alert (not on every frame while it stays overdue). Acking
+    // resets overdueAckAt, so getOverdueStatus goes null again until the
+    // next genuine drift - that's a fresh episode, by design.
+    if (status && !state.overdueEpisodeActive) {
+        state.overdueEpisodeActive = true;
+        state.overdueEpisodes = (state.overdueEpisodes || 0) + 1;
+        saveState();
+    } else if (!status && state.overdueEpisodeActive) {
+        state.overdueEpisodeActive = false;
+        saveState();
+    }
 
     const pill = document.querySelector('.green-pill');
     if (pill) {
